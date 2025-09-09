@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"sort"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,16 +28,10 @@ import (
 // aspects that would prevent SSM from working.
 
 func main() {
-	for range 40 {
-		fmt.Print("-")
-	}
-	fmt.Println()
+	fmt.Println(strings.Repeat("-", 40))
 	fmt.Println("-- SSM Quick Connect --")
+	fmt.Println(strings.Repeat("-", 40))
 
-	for range 40 {
-		fmt.Print("-")
-	}
-	fmt.Println()
 	ctx := context.TODO()
 
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -46,26 +41,7 @@ func main() {
 
 	ec2Client := ec2.NewFromConfig(cfg)
 
-	reservations := []*types.Reservation{}
-	resp, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
-	if err != nil {
-		log.Fatal(err)
-	}
-	for _, r := range resp.Reservations {
-		reservations = append(reservations, &r)
-	}
-	for resp.NextToken != nil {
-		resp, err = ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-			NextToken: resp.NextToken,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, r := range resp.Reservations {
-			reservations = append(reservations, &r)
-		}
-	}
-
+	reservations := getInstReservations(ec2Client, ctx)
 	instanceNames := map[string]string{}
 	for _, r := range reservations {
 		for _, i := range r.Instances {
@@ -142,6 +118,29 @@ func main() {
 	if err := startSSMSession(instanceIDs[inputInt-1]); err != nil {
 		log.Fatal("SSM session failed:", err)
 	}
+}
+
+func getInstReservations(ec2Client *ec2.Client, ctx context.Context) []*types.Reservation {
+	reservations := []*types.Reservation{}
+	resp, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, r := range resp.Reservations {
+		reservations = append(reservations, &r)
+	}
+	for resp.NextToken != nil {
+		resp, err = ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
+			NextToken: resp.NextToken,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		for _, r := range resp.Reservations {
+			reservations = append(reservations, &r)
+		}
+	}
+	return reservations
 }
 
 // Start SSM session using AWS CLI
