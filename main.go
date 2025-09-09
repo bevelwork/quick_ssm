@@ -42,54 +42,9 @@ func main() {
 	ec2Client := ec2.NewFromConfig(cfg)
 
 	reservations := getInstReservations(ec2Client, ctx)
-	instanceNames := map[string]string{}
-	for _, r := range reservations {
-		for _, i := range r.Instances {
-			instanceNames[*i.InstanceId] = "Unknown"
 
-			for _, tag := range i.Tags {
-				if *tag.Key == "Name" {
-					instanceNames[*i.InstanceId] = *tag.Value
-					break
-				}
-			}
-		}
-	}
-
-	instanceIDs := []string{}
-	for id := range instanceNames {
-		instanceIDs = append(instanceIDs, id)
-	}
-	sort.Strings(instanceIDs)
-	nameCount := map[string]int{}
-	namesSeen := []string{}
-	for _, id := range instanceIDs {
-		nameCount[instanceNames[id]]++
-		if nameCount[instanceNames[id]] > 1 {
-			instanceNames[id] = fmt.Sprintf("%s (%d)", instanceNames[id], nameCount[instanceNames[id]])
-		}
-		namesSeen = append(namesSeen, instanceNames[id])
-	}
-
-	sort.Strings(namesSeen)
-	longestName := 0
-	for _, name := range namesSeen {
-		if len(name) > longestName {
-			longestName = len(name)
-		}
-	}
-
-	for idx, name := range namesSeen {
-		instanceID := ""
-		for id, instName := range instanceNames {
-			if name == instName {
-				instanceID = id
-				break
-			}
-		}
-		// Thre pading for digit
-		fmt.Printf("%3d. %-*s %s\n", idx+1, longestName, name, instanceID)
-	}
+	instanceIDs, instanceNames, printOut := getInstNameInfo(reservations)
+	fmt.Println(strings.Join(printOut, "\n"))
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Select instance. Blank, or non-numeric input will exit: ")
@@ -118,6 +73,59 @@ func main() {
 	if err := startSSMSession(instanceIDs[inputInt-1]); err != nil {
 		log.Fatal("SSM session failed:", err)
 	}
+}
+
+// Get instance names, and a list of all names seen, and the longest name
+func getInstNameInfo(reservations []*types.Reservation) ([]string, map[string]string, []string) {
+	instanceNames := map[string]string{}
+	instanceIDs := []string{}
+	namesSeen := []string{}
+	for _, r := range reservations {
+		for _, i := range r.Instances {
+			instanceIDs = append(instanceIDs, *i.InstanceId)
+			name := "Unknown"
+
+			for _, tag := range i.Tags {
+				if *tag.Key == "Name" {
+					name = *tag.Value
+				}
+			}
+			instanceNames[*i.InstanceId] = name
+			namesSeen = append(namesSeen, name)
+		}
+	}
+	sort.Strings(instanceIDs)
+	nameCount := map[string]int{}
+	for _, id := range instanceIDs {
+		nameCount[instanceNames[id]]++
+		if nameCount[instanceNames[id]] > 1 {
+			instanceNames[id] = fmt.Sprintf("%s (%d)", instanceNames[id], nameCount[instanceNames[id]])
+		}
+	}
+
+	sort.Strings(namesSeen)
+	longestName := 0
+	for _, name := range namesSeen {
+		if len(name) > longestName {
+			longestName = len(name)
+		}
+	}
+	printout := make([]string, 0, len(namesSeen))
+	for idx, name := range namesSeen {
+		instanceID := ""
+		for id, instName := range instanceNames {
+			if name == instName {
+				instanceID = id
+				break
+			}
+		}
+		// Thre pading for digit
+		printout = append(
+			printout,
+			fmt.Sprintf("%3d. %-*s %s\n", idx+1, longestName, name, instanceID),
+		)
+	}
+	return instanceIDs, instanceNames, printout
 }
 
 func getInstReservations(ec2Client *ec2.Client, ctx context.Context) []*types.Reservation {
