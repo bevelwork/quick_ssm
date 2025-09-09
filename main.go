@@ -1,10 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"sort"
+	"strconv"
 
 	// "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -109,4 +112,25 @@ func main() {
 		// Thre pading for digit
 		fmt.Printf("%3d. %-*s %s\n", idx+1, longestName, name, instanceID)
 	}
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Select instance. Blank, or non-numeric input will exit: ")
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+	input = input[:len(input)-1]
+	if input == "" {
+		fmt.Println("Exiting")
+		return
+	}
+	inputInt, err := strconv.Atoi(input)
+	if err != nil {
+		fmt.Println("Non-numeric input. Exiting")
+		return
+	}
+	fmt.Printf(
+		"Selected instance: %s %s\n",
+		instanceNames[instanceIDs[inputInt-1]], instanceIDs[inputInt-1],
+	)
 }
