@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"os/signal"
 	"sort"
 	"strconv"
+	"syscall"
 
-	// "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
@@ -133,4 +135,48 @@ func main() {
 		"Selected instance: %s %s\n",
 		instanceNames[instanceIDs[inputInt-1]], instanceIDs[inputInt-1],
 	)
+
+	fmt.Println("Connecting to instance. This may take a few moments: ")
+
+	// Start the SSM session using AWS CLI
+	if err := startSSMSession(instanceIDs[inputInt-1]); err != nil {
+		log.Fatal("SSM session failed:", err)
+	}
+}
+
+// Start SSM session using AWS CLI
+func startSSMSession(instanceID string) error {
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Create the AWS CLI command
+	cmd := exec.Command("aws", "ssm", "start-session", "--target", instanceID)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Start the process
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start SSM session: %v", err)
+	}
+
+	// Wait for the process to complete or for a signal
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-sigChan:
+		log.Println("Received interrupt signal, terminating SSM session...")
+		cmd.Process.Signal(syscall.SIGINT)
+		<-done // Wait for the process to exit
+	case err := <-done:
+		if err != nil {
+			return fmt.Errorf("SSM session ended with error: %v", err)
+		}
+	}
+
+	return nil
 }
