@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -30,6 +31,9 @@ func main() {
 		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
 	}
 
+	privateMode := flag.Bool("private-mode", false, "Print account information during execution")
+	flag.Parse()
+
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -47,9 +51,15 @@ func main() {
 		spacer,
 		"-- SSM Quick Connect --",
 		spacer,
-		fmt.Sprintf("  Account: %s \n  User: %s", *callerIdentity.Account, *callerIdentity.Arn),
-		spacer,
 	}
+	if !*privateMode {
+		header = append(header, fmt.Sprintf(
+			"  Account: %s \n  User: %s",
+			*callerIdentity.Account, *callerIdentity.Arn,
+		))
+		header = append(header, spacer)
+	}
+
 	fmt.Println(strings.Join(header, "\n"))
 
 	ec2Client := ec2.NewFromConfig(cfg)
@@ -71,6 +81,7 @@ func main() {
 		)
 		fmt.Println(entry)
 	}
+	fmt.Println(spacer)
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Select instance. Blank, or non-numeric input will exit: ")
