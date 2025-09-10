@@ -32,7 +32,7 @@ func main() {
 	fmt.Println("-- SSM Quick Connect --")
 	fmt.Println(strings.Repeat("-", 40))
 
-	ctx := context.TODO()
+	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -41,9 +41,15 @@ func main() {
 
 	ec2Client := ec2.NewFromConfig(cfg)
 
-	reservations := getInstReservations(ec2Client, ctx)
+	reservations, err := getInstReservations(ec2Client, ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	instanceIDs, instanceNames, printOut := getInstNameInfo(reservations)
+	instanceIDs, instanceNames, printOut, err := getInstNameInfo(reservations)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println(strings.Join(printOut, "\n"))
 
 	reader := bufio.NewReader(os.Stdin)
@@ -76,7 +82,10 @@ func main() {
 }
 
 // Get instance names, and a list of all names seen, and the longest name
-func getInstNameInfo(reservations []*types.Reservation) ([]string, map[string]string, []string) {
+func getInstNameInfo(reservations []*types.Reservation) ([]string, map[string]string, []string, error) {
+	if len(reservations) == 0 {
+		return nil, nil, nil, fmt.Errorf("no instances found")
+	}
 	instanceNames := map[string]string{}
 	instanceIDs := []string{}
 	namesSeen := []string{}
@@ -125,30 +134,30 @@ func getInstNameInfo(reservations []*types.Reservation) ([]string, map[string]st
 			fmt.Sprintf("%3d. %-*s %s\n", idx+1, longestName, name, instanceID),
 		)
 	}
-	return instanceIDs, instanceNames, printout
+	return instanceIDs, instanceNames, printout, nil
 }
 
-func getInstReservations(ec2Client *ec2.Client, ctx context.Context) []*types.Reservation {
+func getInstReservations(ec2Client *ec2.Client, ctx context.Context) ([]*types.Reservation, error) {
 	reservations := []*types.Reservation{}
 	resp, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	for _, r := range resp.Reservations {
-		reservations = append(reservations, &r)
+	for i := range resp.Reservations {
+		reservations = append(reservations, &resp.Reservations[i])
 	}
 	for resp.NextToken != nil {
 		resp, err = ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
 			NextToken: resp.NextToken,
 		})
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		for _, r := range resp.Reservations {
-			reservations = append(reservations, &r)
+		for i := range resp.Reservations {
+			reservations = append(reservations, &resp.Reservations[i])
 		}
 	}
-	return reservations
+	return reservations, nil
 }
 
 // Start SSM session using AWS CLI
