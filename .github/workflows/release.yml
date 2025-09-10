@@ -70,53 +70,6 @@ jobs:
         git push origin "$VERSION"
         echo "Created and pushed tag: $VERSION"
         
-    - name: Create Release
-      if: steps.version_check.outputs.skip_release == 'false'
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        release_name: Release ${{ steps.version.outputs.version }}
-        body: |
-          ## Changes in ${{ steps.version.outputs.version }}
-          
-          This release includes:
-          - Bug fixes and improvements
-          - Updated dependencies
-          
-          ## Installation
-          
-          Download the binary for your platform from the assets below.
-          
-          ### Usage
-          ```bash
-          # Make executable
-          chmod +x quick_ssm
-          
-          # Run with help
-          ./quick_ssm -h
-          
-          # Run diagnostics
-          ./quick_ssm --check
-          ```
-          
-          ## Checksums
-          - SHA256: `${{ hashFiles('quick_ssm') }}`
-        draft: false
-        prerelease: false
-        
-    - name: Upload Release Asset
-      if: steps.version_check.outputs.skip_release == 'false'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./quick_ssm
-        asset_name: quick_ssm-${{ steps.version.outputs.version }}-linux-amd64
-        asset_content_type: application/octet-stream
-        
     - name: Generate checksums
       if: steps.version_check.outputs.skip_release == 'false'
       run: |
@@ -124,13 +77,39 @@ jobs:
         echo "Generated checksum:"
         cat quick_ssm.sha256
         
-    - name: Upload checksum
+    - name: Create Release
       if: steps.version_check.outputs.skip_release == 'false'
-      uses: actions/upload-release-asset@v1
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        
+        # Create release using GitHub CLI
+        gh release create "$VERSION" \
+          --title "Release $VERSION" \
+          --notes "## Changes in $VERSION
+        
+        This release includes:
+        - Bug fixes and improvements
+        - Updated dependencies
+        
+        ## Installation
+        
+        Download the binary for your platform from the assets below.
+        
+        ### Usage
+        \`\`\`bash
+        # Make executable
+        chmod +x quick_ssm
+        
+        # Run with help
+        ./quick_ssm -h
+        
+        # Run diagnostics
+        ./quick_ssm --check
+        \`\`\`
+        
+        ## Checksums
+        - SHA256: \`$(sha256sum quick_ssm | cut -d' ' -f1)\`" \
+          ./quick_ssm \
+          ./quick_ssm.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./quick_ssm.sha256
-        asset_name: quick_ssm-${{ steps.version.outputs.version }}-linux-amd64.sha256
-        asset_content_type: text/plain
