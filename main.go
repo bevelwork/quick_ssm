@@ -114,15 +114,23 @@ func main() {
 	}
 
 	for i, inst := range instances {
+		// Alternate row colors for better readability
+		var rowColor string
+		if i%2 == 0 {
+			rowColor = ColorWhite // Default color for even rows
+		} else {
+			rowColor = ColorCyan // Subtle cyan for odd rows
+		}
+
 		entry := fmt.Sprintf(
 			"%3d. %-*s %s", i+1, longestName, inst.DisplayName, inst.ID,
 		)
-		fmt.Println(entry)
+		fmt.Println(color(entry, rowColor))
 	}
-	fmt.Println(spacer)
+	fmt.Println(color(spacer, ColorBlue))
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Select instance. Blank, or non-numeric input will exit: ")
+	fmt.Printf("%s", color("Select instance. Blank, or non-numeric input will exit: ", ColorYellow))
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		log.Fatal(err)
@@ -140,7 +148,8 @@ func main() {
 	selectedInstance := instances[inputInt-1]
 	fmt.Printf(
 		"Selected instance: %s %s\n",
-		selectedInstance.DisplayName, selectedInstance.ID,
+		colorBold(selectedInstance.DisplayName, ColorGreen),
+		color(selectedInstance.ID, ColorWhite),
 	)
 
 	if *checkMode {
