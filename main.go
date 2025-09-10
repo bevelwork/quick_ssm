@@ -185,9 +185,18 @@ func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, 
 		}
 		for _, i := range output.Reservations {
 			for _, inst := range i.Instances {
+				instanceName := "unknown"
+				// Look for the "Name" tag specifically
+				for _, tag := range inst.Tags {
+					if tag.Key != nil && *tag.Key == "Name" && tag.Value != nil {
+						instanceName = *tag.Value
+						break
+					}
+				}
+
 				instances = append(instances, &InstanceInfo{
 					ID:   *inst.InstanceId,
-					Name: *inst.Tags[0].Value,
+					Name: instanceName,
 				})
 			}
 		}
