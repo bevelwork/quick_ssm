@@ -38,63 +38,12 @@ const (
 	ColorBold   = "\033[1m"
 )
 
-// color wraps a string with the specified color code
-func color(text, colorCode string) string {
-	return colorCode + text + ColorReset
-}
-
-// colorBold wraps a string with the specified color code and bold formatting
-func colorBold(text, colorCode string) string {
-	return colorCode + ColorBold + text + ColorReset
-}
-
-func colorInstState(state string) string {
-	switch state {
-	case "running":
-		return ColorGreen
-	case "stopped":
-		return ColorRed
-	case "terminated":
-		return ColorRed
-	case "shutting-down":
-		return ColorRed
-	case "pending":
-		return ColorYellow
-	case "stopping":
-		return ColorYellow
-	case "starting":
-		return ColorYellow
-	default:
-		return ColorWhite
-	}
-}
-
 // InstanceInfo represents an EC2 instance with its metadata for display purposes.
 type InstanceInfo struct {
 	ID          string // The EC2 instance ID
 	Name        string // The instance name from EC2 tags
 	DisplayName string // The formatted display name (may include numbering for duplicates)
 	State       string // The instance state (running, stopped, pending, etc.)
-}
-
-func printHeader(checkMode bool, privateMode bool, callerIdentity *sts.GetCallerIdentityOutput) {
-	header := []string{
-		color(strings.Repeat("-", 40), ColorBlue),
-		"-- SSM Quick Connect --",
-		color(strings.Repeat("-", 40), ColorBlue),
-	}
-	if checkMode {
-		header = append(header, colorBold("<> <> DIAGNOSTIC MODE <> <>", ColorCyan))
-	}
-	if !privateMode {
-		header = append(header, fmt.Sprintf(
-			"  Account: %s \n  User: %s",
-			*callerIdentity.Account, *callerIdentity.Arn,
-		))
-		header = append(header, color(strings.Repeat("-", 40), ColorBlue))
-	}
-
-	fmt.Println(strings.Join(header, "\n"))
 }
 
 func main() {
@@ -176,7 +125,7 @@ func main() {
 		"Selected instance: %s %s [%s]\n",
 		colorBold(selectedInstance.DisplayName, ColorGreen),
 		color(selectedInstance.ID, ColorWhite),
-		color(selectedInstance.State, getStateColor(selectedInstance.State)),
+		color(selectedInstance.State, colorInstState(selectedInstance.State)),
 	)
 
 	// Warn if instance is not running
@@ -717,7 +666,37 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-func getStateColor(state string) string {
+// color wraps a string with the specified color code
+func color(text, colorCode string) string {
+	return colorCode + text + ColorReset
+}
+
+// colorBold wraps a string with the specified color code and bold formatting
+func colorBold(text, colorCode string) string {
+	return colorCode + ColorBold + text + ColorReset
+}
+
+func printHeader(checkMode bool, privateMode bool, callerIdentity *sts.GetCallerIdentityOutput) {
+	header := []string{
+		color(strings.Repeat("-", 40), ColorBlue),
+		"-- SSM Quick Connect --",
+		color(strings.Repeat("-", 40), ColorBlue),
+	}
+	if checkMode {
+		header = append(header, colorBold("<> <> DIAGNOSTIC MODE <> <>", ColorCyan))
+	}
+	if !privateMode {
+		header = append(header, fmt.Sprintf(
+			"  Account: %s \n  User: %s",
+			*callerIdentity.Account, *callerIdentity.Arn,
+		))
+		header = append(header, color(strings.Repeat("-", 40), ColorBlue))
+	}
+
+	fmt.Println(strings.Join(header, "\n"))
+}
+
+func colorInstState(state string) string {
 	switch state {
 	case "running":
 		return ColorGreen
