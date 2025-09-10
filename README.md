@@ -86,13 +86,6 @@ granted production quick_ssm # Using granted
 go install github.com/bevelwork/quick_ssm@latest
 ```
 
-### Or Download Release
-```bash
-# Download latest release
-curl -L https://github.com/bevelwork/quick_ssm/releases/latest/download/quick_ssm-v1.0.0-linux-amd64 -o quick_ssm
-chmod +x quick_ssm
-```
-
 ### Or Build from Source
 ```bash
 git clone https://github.com/bevelwork/quick_ssm.git
@@ -129,8 +122,6 @@ The `--check` flag verifies SSM connectivity requirements:
 - ✅ **IAM Role**: Instance has proper SSM permissions
 - ✅ **Internet Access**: Subnet has internet gateway route  
 - ✅ **Security Groups**: Allow HTTPS outbound traffic
-
-*See the [Diagnostic Mode Demo](#-demo) above for the full visual experience*
 
 ## 🎯 Perfect! Your `go install` is now working!
 
