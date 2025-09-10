@@ -53,7 +53,7 @@ jobs:
         echo "Binary size: $(ls -lh quick_ssm | awk '{print $5}')"
         
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: quick_ssm-binary
         path: quick_ssm
@@ -90,7 +90,7 @@ jobs:
       run: go test -coverprofile=coverage.out ./...
       
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.out
         flags: unittests
