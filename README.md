@@ -2,16 +2,21 @@
 
 A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems Manager (SSM) Session Manager. This tool lists all your EC2 instances and allows you to select one for an interactive SSM session.
 
-## Features
+![Basic Usage Demo](docs/basic-usage.gif)
 
-- Lists all EC2 instances in your AWS account
-- Displays instance names and IDs in a numbered menu
-- Handles duplicate instance names by adding numbers (e.g., "web-server (2)")
-- Sorts instances alphabetically by name
-- Provides an interactive selection interface
-- Establishes SSM sessions using the AWS CLI
-- Supports graceful shutdown with signal handling
-- Optional private mode to hide account information
+
+When inevitably some instance does not seem to be working we support a `--check` mode that lets you quickly diagnose common problems.
+
+![Diagnostic Mode Demo](docs/check-mode.gif)
+
+## ✨ Features
+
+- **Interactive Instance Selection**: Lists all EC2 instances with numbered menu
+- **Smart Naming**: Handles duplicate instance names with numbering (e.g., "web-server (2)")
+- **Diagnostic Mode**: Comprehensive checks for SSM connectivity requirements
+- **Visual Feedback**: Color-coded output with alternating row colors for easy scanning
+- **Graceful Shutdown**: Proper signal handling for clean session termination
+- **Private Mode**: Hide account information for screenshots and demos
 
 ## Prerequisites
 
@@ -68,133 +73,69 @@ A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems
 
 4. **Instance IAM Role**: EC2 instances need an IAM role with the `AmazonSSMManagedInstanceCore` policy attached.
 
-## Installation
+## 🚀 Quick Start
 
-### Option 1: Build from Source
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd quick_ssm
-   ```
-
-2. Install dependencies:
-   ```bash
-   go mod download
-   ```
-
-3. Build the binary:
-   ```bash
-   go build -o quick_ssm main.go
-   ```
-
-4. (Optional) link the binary to `/usr/local/bin`:
-   ```bash
-   ln -s $(pwd)/quick_ssm /usr/local/bin/quick_ssm
-   ```
-
-### Option 2: Go Install
-
-If the module is available in a Go module repository:
-
+### Install with Go
 ```bash
 go install github.com/bevelwork/quick_ssm@latest
 ```
 
-### Option 3: Download Release
-
-Download the latest release binary from the [Releases page](https://github.com/bevelwork/quick_ssm/releases):
-
+### Or Download Release
 ```bash
-# Download the latest release
+# Download latest release
 curl -L https://github.com/bevelwork/quick_ssm/releases/latest/download/quick_ssm-v1.0.0-linux-amd64 -o quick_ssm
 chmod +x quick_ssm
 ```
 
-## Usage
+### Or Build from Source
+```bash
+git clone https://github.com/bevelwork/quick_ssm.git
+cd quick_ssm
+go build -o quick_ssm .
+```
 
-### Basic Usage
+## 📖 Usage
+
+### Basic Connection
+```bash
+quick_ssm
+```
+*See the [Basic Usage Demo](#-demo) above for a visual walkthrough*
+
+### Diagnostic Mode
+```bash
+quick_ssm --check
+```
+*See the [Diagnostic Mode Demo](#-demo) above for a visual walkthrough*
+
+### Command Options
+```bash
+quick_ssm -h                    # Show help
+quick_ssm --private-mode        # Hide account info
+quick_ssm --check               # Run diagnostics
+```
+
+### What Diagnostic Mode Checks
+
+The `--check` flag verifies SSM connectivity requirements:
+
+- ✅ **IAM Role**: Instance has proper SSM permissions
+- ✅ **Internet Access**: Subnet has internet gateway route  
+- ✅ **Security Groups**: Allow HTTPS outbound traffic
+
+*See the [Diagnostic Mode Demo](#-demo) above for the full visual experience*
+
+## 🎯 Perfect! Your `go install` is now working!
+
+The issue was that your code needed to be committed and pushed to GitHub for `go install` to work. Now you can:
 
 ```bash
-./quick_ssm
+# Install the latest version
+go install github.com/bevelwork/quick_ssm@latest
+
+# Run it from anywhere
+quick_ssm
 ```
-
-The tool will:
-1. Display your AWS account information
-2. List all EC2 instances with numbered options
-3. Prompt you to select an instance
-4. Establish an SSM session to the selected instance
-
-### Command Line Options
-
-```bash
-./quick_ssm -h
-```
-
-Available options:
-- `-private-mode`: Hide account information during execution (useful for screenshots or demos)
-- `-check`: Perform diagnostic checks on the selected instance instead of connecting
-
-Examples:
-```bash
-# Hide account information
-./quick_ssm -private-mode
-
-# Run diagnostic checks on selected instance
-./quick_ssm -check
-```
-
-### Example Session
-
-```
-----------------------------------------
--- SSM Quick Connect --
-----------------------------------------
-  Account: 123456789012 
-  User: arn:aws:iam::123456789012:user/your-username
-----------------------------------------
-  1. web-server-1     i-0123456789abcdef0
-  2. web-server-2     i-0fedcba9876543210
-  3. database-server  i-0abcdef1234567890
-  4. api-server (2)   i-0987654321fedcba0
-----------------------------------------
-Select instance. Blank, or non-numeric input will exit: 2
-Selected instance: web-server-2 i-0fedcba9876543210
-Connecting to instance. This may take a few moments: 
-```
-
-### Diagnostic Checks
-
-The `--check` flag performs comprehensive diagnostic checks on the selected instance to verify SSM connectivity requirements:
-
-1. **IAM Role Attachment**: Verifies the instance has an IAM role with SSM permissions
-2. **Internet Connectivity**: Checks if the instance's subnet has internet access via route table
-3. **SSM Traffic Rules**: Validates security group rules allow HTTPS outbound traffic
-
-Example diagnostic output:
-```
-============================================================
-DIAGNOSTIC CHECKS FOR INSTANCE: i-0123456789abcdef0
-============================================================
-
-✅ IAM Role Attachment: IAM role 'SSMInstanceRole' attached with SSM permissions
-✅ Internet Connectivity: Subnet has internet gateway route (0.0.0.0/0)
-✅ SSM Traffic Rules: Security groups allow HTTPS outbound traffic (required for SSM)
-
-============================================================
-DIAGNOSTIC SUMMARY
-============================================================
-✅ Passed: 3
-⚠️  Warnings: 0
-❌ Failed: 0
-
-🎉 All checks passed! Instance should be ready for SSM connection.
-```
-
-### Exiting
-
-- **During selection**: Press Enter (blank input) or enter non-numeric text to exit
-- **During SSM session**: Press `Ctrl+C` to gracefully terminate the session
 
 ## How It Works
 
