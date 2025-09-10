@@ -86,14 +86,16 @@ jobs:
         gh release create "$VERSION" \
           --title "Release $VERSION" \
           --notes "## Changes in $VERSION
+
+        ## Direct installation
         
-        This release includes:
-        - Bug fixes and improvements
-        - Updated dependencies
+        \`\`\`bash
+        go get github.com/bevelwork/quick_ssm@$VERSION
+        \`\`\`
         
-        ## Installation
+        ## Using this release
         
-        Download the binary for your platform from the assets below.
+        Download the binary from the assets below.
         
         ### Usage
         \`\`\`bash
@@ -103,8 +105,6 @@ jobs:
         # Run with help
         ./quick_ssm -h
         
-        # Run diagnostics
-        ./quick_ssm --check
         \`\`\`
         
         ## Checksums
