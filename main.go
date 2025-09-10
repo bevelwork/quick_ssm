@@ -15,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type InstanceInfo struct {
@@ -24,9 +25,10 @@ type InstanceInfo struct {
 }
 
 func main() {
-	fmt.Println(strings.Repeat("-", 40))
-	fmt.Println("-- SSM Quick Connect --")
-	fmt.Println(strings.Repeat("-", 40))
+	// Confirm that the AWS CLI is installed
+	if _, err := exec.LookPath("aws"); err != nil {
+		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
+	}
 
 	ctx := context.Background()
 
@@ -34,6 +36,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	stsClient := sts.NewFromConfig(cfg)
+	callerIdentity, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		log.Fatal(fmt.Errorf("failed to authenticate with aws: %v", err))
+	}
+
+	spacer := strings.Repeat("-", 40)
+	header := []string{
+		spacer,
+		"-- SSM Quick Connect --",
+		spacer,
+		fmt.Sprintf("  Account: %s \n  User: %s", *callerIdentity.Account, *callerIdentity.Arn),
+		spacer,
+	}
+	fmt.Println(strings.Join(header, "\n"))
 
 	ec2Client := ec2.NewFromConfig(cfg)
 
