@@ -2,18 +2,20 @@
 
 A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems Manager (SSM) Session Manager. This tool lists all your EC2 instances and allows you to select one for an interactive SSM session.
 
-![Basic Usage Demo](docs/basic-usage.gif)
+![Basic Usage Demo](media/basic.gif)
 
 
 When inevitably some instance does not seem to be working we support a `--check` mode that lets you quickly diagnose common problems.
 
-![Diagnostic Mode Demo](docs/check-mode.gif)
+![Diagnostic Mode Demo](media/check-mode.gif)
 
 ## ✨ Features
 
 - **Interactive Instance Selection**: Lists all EC2 instances with numbered menu
+- **Instance State Display**: Shows running status with color-coded indicators
 - **Smart Naming**: Handles duplicate instance names with numbering (e.g., "web-server (2)")
 - **Diagnostic Mode**: Comprehensive checks for SSM connectivity requirements
+- **State Warnings**: Alerts when trying to connect to non-running instances
 - **Visual Feedback**: Color-coded output with alternating row colors for easy scanning
 - **Graceful Shutdown**: Proper signal handling for clean session termination
 - **Private Mode**: Hide account information for screenshots and demos
@@ -119,6 +121,7 @@ quick_ssm --check               # Run diagnostics
 
 The `--check` flag verifies SSM connectivity requirements:
 
+- ✅ **Instance State**: Checks if instance is running and ready
 - ✅ **IAM Role**: Instance has proper SSM permissions
 - ✅ **Internet Access**: Subnet has internet gateway route  
 - ✅ **Security Groups**: Allow HTTPS outbound traffic
