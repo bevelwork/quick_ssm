@@ -37,6 +37,9 @@ A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems
          "Effect": "Allow",
          "Action": [
            "ec2:DescribeInstances",
+           "ec2:DescribeSubnets",
+           "ec2:DescribeRouteTables",
+           "ec2:DescribeSecurityGroups",
            "sts:GetCallerIdentity"
          ],
          "Resource": "*"
@@ -47,6 +50,15 @@ A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems
            "ssm:StartSession"
          ],
          "Resource": "arn:aws:ec2:*:*:instance/*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": [
+           "iam:ListAttachedRolePolicies",
+           "iam:ListRolePolicies",
+           "iam:GetRolePolicy"
+         ],
+         "Resource": "*"
        }
      ]
    }
@@ -111,10 +123,15 @@ The tool will:
 
 Available options:
 - `-private-mode`: Hide account information during execution (useful for screenshots or demos)
+- `-check`: Perform diagnostic checks on the selected instance instead of connecting
 
-Example:
+Examples:
 ```bash
+# Hide account information
 ./quick_ssm -private-mode
+
+# Run diagnostic checks on selected instance
+./quick_ssm -check
 ```
 
 ### Example Session
@@ -134,6 +151,34 @@ Example:
 Select instance. Blank, or non-numeric input will exit: 2
 Selected instance: web-server-2 i-0fedcba9876543210
 Connecting to instance. This may take a few moments: 
+```
+
+### Diagnostic Checks
+
+The `--check` flag performs comprehensive diagnostic checks on the selected instance to verify SSM connectivity requirements:
+
+1. **IAM Role Attachment**: Verifies the instance has an IAM role with SSM permissions
+2. **Internet Connectivity**: Checks if the instance's subnet has internet access via route table
+3. **SSM Traffic Rules**: Validates security group rules allow HTTPS outbound traffic
+
+Example diagnostic output:
+```
+============================================================
+DIAGNOSTIC CHECKS FOR INSTANCE: i-0123456789abcdef0
+============================================================
+
+✅ IAM Role Attachment: IAM role 'SSMInstanceRole' attached with SSM permissions
+✅ Internet Connectivity: Subnet has internet gateway route (0.0.0.0/0)
+✅ SSM Traffic Rules: Security groups allow HTTPS outbound traffic (required for SSM)
+
+============================================================
+DIAGNOSTIC SUMMARY
+============================================================
+✅ Passed: 3
+⚠️  Warnings: 0
+❌ Failed: 0
+
+🎉 All checks passed! Instance should be ready for SSM connection.
 ```
 
 ### Exiting
@@ -189,6 +234,9 @@ aws configure set cli_log_level debug
 ## Dependencies
 
 - [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2)
+  - EC2 service (for instance discovery and network diagnostics)
+  - IAM service (for role permission checks)
+  - STS service (for authentication)
 - AWS CLI (for SSM session management)
 
 ## License
