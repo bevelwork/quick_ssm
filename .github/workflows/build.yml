@@ -55,7 +55,7 @@ jobs:
     - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: quick_ssm-binary
+        name: quick_ssm-binary-${{ github.sha }}
         path: quick_ssm
         retention-days: 7
         

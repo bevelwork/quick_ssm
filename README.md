@@ -101,6 +101,16 @@ If the module is available in a Go module repository:
 go install github.com/bevelwork/quick_ssm@latest
 ```
 
+### Option 3: Download Release
+
+Download the latest release binary from the [Releases page](https://github.com/bevelwork/quick_ssm/releases):
+
+```bash
+# Download the latest release
+curl -L https://github.com/bevelwork/quick_ssm/releases/latest/download/quick_ssm-v1.0.0-linux-amd64 -o quick_ssm
+chmod +x quick_ssm
+```
+
 ## Usage
 
 ### Basic Usage
@@ -242,6 +252,68 @@ aws configure set cli_log_level debug
 ## License
 
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
+
+## Version Management
+
+This project uses a simple date-based versioning system: `major.minor.YYYYMMDD`
+
+### Version Format
+
+- **Major.Minor**: Set in `version.yml` file
+- **Date**: Automatically appended as YYYYMMDD format
+- **Example**: `v1.0.20241201` (version 1.0 released on December 1, 2024)
+
+### Automatic Versioning
+
+- **Main branch pushes**: Automatically create release with current date
+- **Manual releases**: Use GitHub Actions "Run workflow" to trigger release
+- **Release artifacts**: Binary and checksums are automatically generated
+
+### Manual Version Management
+
+Update the base version in `version.yml` and use the provided scripts:
+
+```bash
+# Show current version
+make version
+# or
+./scripts/version.sh current
+
+# Update major version
+make major 2
+# or
+./scripts/version.sh major 2
+
+# Update minor version  
+make minor 1
+# or
+./scripts/version.sh minor 1
+
+# Build release binary locally
+make build-release
+```
+
+### Release Process
+
+1. **Automatic**: Push to main branch triggers release with current date
+2. **Manual**: Use GitHub Actions "Run workflow" to create release
+3. **Version Updates**: Edit `version.yml` to change major/minor versions
+
+### Development
+
+```bash
+# Build for development
+make build
+
+# Run tests
+make test
+
+# Format and lint code
+make lint
+
+# Clean build artifacts
+make clean
+```
 
 ## Contributing
 

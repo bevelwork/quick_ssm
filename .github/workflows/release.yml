@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.4'
+        cache: true
+        
+    - name: Download dependencies
+      run: go mod download
+      
+    - name: Build binary
+      run: go build -v -o quick_ssm .
+      
+    - name: Read version from YAML
+      id: version
+      run: |
+        # Read major and minor from version.yml
+        MAJOR=$(grep 'major:' version.yml | awk '{print $2}')
+        MINOR=$(grep 'minor:' version.yml | awk '{print $2}')
+        
+        # Get current date in YYYYMMDD format
+        DATE=$(date +%Y%m%d)
+        
+        # Create version string
+        VERSION="v${MAJOR}.${MINOR}.${DATE}"
+        
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "major=$MAJOR" >> $GITHUB_OUTPUT
+        echo "minor=$MINOR" >> $GITHUB_OUTPUT
+        echo "date=$DATE" >> $GITHUB_OUTPUT
+        echo "Generated version: $VERSION"
+        
+    - name: Check if version already exists
+      id: version_check
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        if git tag -l | grep -q "^${VERSION}$"; then
+          echo "Version $VERSION already exists, skipping release"
+          echo "skip_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "skip_release=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create and push tag
+      if: steps.version_check.outputs.skip_release == 'false'
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$VERSION" -m "Release $VERSION"
+        git push origin "$VERSION"
+        echo "Created and pushed tag: $VERSION"
+        
+    - name: Create Release
+      if: steps.version_check.outputs.skip_release == 'false'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        release_name: Release ${{ steps.version.outputs.version }}
+        body: |
+          ## Changes in ${{ steps.version.outputs.version }}
+          
+          This release includes:
+          - Bug fixes and improvements
+          - Updated dependencies
+          
+          ## Installation
+          
+          Download the binary for your platform from the assets below.
+          
+          ### Usage
+          ```bash
+          # Make executable
+          chmod +x quick_ssm
+          
+          # Run with help
+          ./quick_ssm -h
+          
+          # Run diagnostics
+          ./quick_ssm --check
+          ```
+          
+          ## Checksums
+          - SHA256: `${{ hashFiles('quick_ssm') }}`
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      if: steps.version_check.outputs.skip_release == 'false'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./quick_ssm
+        asset_name: quick_ssm-${{ steps.version.outputs.version }}-linux-amd64
+        asset_content_type: application/octet-stream
+        
+    - name: Generate checksums
+      if: steps.version_check.outputs.skip_release == 'false'
+      run: |
+        sha256sum quick_ssm > quick_ssm.sha256
+        echo "Generated checksum:"
+        cat quick_ssm.sha256
+        
+    - name: Upload checksum
+      if: steps.version_check.outputs.skip_release == 'false'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./quick_ssm.sha256
+        asset_name: quick_ssm-${{ steps.version.outputs.version }}-linux-amd64.sha256
+        asset_content_type: text/plain
