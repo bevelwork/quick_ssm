@@ -36,49 +36,6 @@ granted production quick_ssm # Using granted
 1. **Go 1.24.4 or later** - [Download and install Go](https://golang.org/dl/)
 2. **AWS CLI** - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions)
 
-### AWS Configuration
-
-1. **AWS Credentials**: Configure your AWS credentials one of these methods:
-2. **Required IAM Permissions**: Your AWS credentials need the following permissions:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": [
-           "ec2:DescribeInstances",
-           "ec2:DescribeSubnets",
-           "ec2:DescribeRouteTables",
-           "ec2:DescribeSecurityGroups",
-           "sts:GetCallerIdentity"
-         ],
-         "Resource": "*"
-       },
-       {
-         "Effect": "Allow",
-         "Action": [
-           "ssm:StartSession"
-         ],
-         "Resource": "arn:aws:ec2:*:*:instance/*"
-       },
-       {
-         "Effect": "Allow",
-         "Action": [
-           "iam:ListAttachedRolePolicies",
-           "iam:ListRolePolicies",
-           "iam:GetRolePolicy"
-         ],
-         "Resource": "*"
-       }
-     ]
-   }
-   ```
-
-3. **SSM Agent**: Target EC2 instances must have the SSM Agent installed and running. Most modern Amazon Linux, Ubuntu, and Windows AMIs include it by default.
-
-4. **Instance IAM Role**: EC2 instances need an IAM role with the `AmazonSSMManagedInstanceCore` policy attached.
-
 ## 🚀 Quick Start
 
 ### Install with Go
@@ -140,13 +97,48 @@ The `--check` flag verifies SSM connectivity requirements:
    - Check that SSM Agent is running on the instance
    - Ensure network connectivity between your machine and AWS
 
-## Dependencies
+### AWS Configuration
 
-- [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2)
-  - EC2 service (for instance discovery and network diagnostics)
-  - IAM service (for role permission checks)
-  - STS service (for authentication)
-- AWS CLI (for SSM session management)
+1. **AWS Credentials**: Configure your AWS credentials one of these methods:
+2. **Required IAM Permissions**: Your AWS credentials need the following permissions:
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "ec2:DescribeInstances",
+           "ec2:DescribeSubnets",
+           "ec2:DescribeRouteTables",
+           "ec2:DescribeSecurityGroups",
+           "sts:GetCallerIdentity"
+         ],
+         "Resource": "*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": [
+           "ssm:StartSession"
+         ],
+         "Resource": "arn:aws:ec2:*:*:instance/*"
+       },
+       {
+         "Effect": "Allow",
+         "Action": [
+           "iam:ListAttachedRolePolicies",
+           "iam:ListRolePolicies",
+           "iam:GetRolePolicy"
+         ],
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+
+3. **SSM Agent**: Target EC2 instances must have the SSM Agent installed and running. Most modern Amazon Linux, Ubuntu, and Windows AMIs include it by default.
+
+4. **Instance IAM Role**: EC2 instances need an IAM role with the `AmazonSSMManagedInstanceCore` policy attached.
 
 ## Version Management
 
