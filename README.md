@@ -86,7 +86,7 @@ A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems
 If the module is available in a Go module repository:
 
 ```bash
-go install gitlab.com/bevelwork/quick_ssm@latest
+go install github.com/bevelwork/quick_ssm@latest
 ```
 
 ## Usage
