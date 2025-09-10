@@ -31,6 +31,10 @@ func main() {
 		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
 	}
 
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+	}
 	privateMode := flag.Bool("private-mode", false, "Print account information during execution")
 	flag.Parse()
 
