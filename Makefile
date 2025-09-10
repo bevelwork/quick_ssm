@@ -1,6 +1,6 @@
 # Quick SSM Makefile
 
-.PHONY: help build test clean version major minor build-release
+.PHONY: help build test clean version major minor build-release link unlink install
 
 # Default target
 help:
@@ -13,6 +13,9 @@ help:
 	@echo "  major <num>    - Update major version"
 	@echo "  minor <num>    - Update minor version"
 	@echo "  build-release  - Build release binary with current date"
+	@echo "  link           - Create symlink in /usr/local/bin"
+	@echo "  unlink         - Remove symlink from /usr/local/bin"
+	@echo "  install        - Build and link (build + link)"
 	@echo ""
 
 # Build the binary
