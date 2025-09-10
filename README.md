@@ -95,25 +95,6 @@ go build -o quick_ssm .
 
 ## 📖 Usage
 
-### Basic Connection
-```bash
-quick_ssm
-```
-*See the [Basic Usage Demo](#-demo) above for a visual walkthrough*
-
-### Diagnostic Mode
-```bash
-quick_ssm --check
-```
-*See the [Diagnostic Mode Demo](#-demo) above for a visual walkthrough*
-
-### Command Options
-```bash
-quick_ssm -h                    # Show help
-quick_ssm --private-mode        # Hide account info
-quick_ssm --check               # Run diagnostics
-```
-
 ### What Diagnostic Mode Checks
 
 The `--check` flag verifies SSM connectivity requirements:
@@ -122,18 +103,6 @@ The `--check` flag verifies SSM connectivity requirements:
 - ✅ **IAM Role**: Instance has proper SSM permissions
 - ✅ **Internet Access**: Subnet has internet gateway route  
 - ✅ **Security Groups**: Allow HTTPS outbound traffic
-
-## 🎯 Perfect! Your `go install` is now working!
-
-The issue was that your code needed to be committed and pushed to GitHub for `go install` to work. Now you can:
-
-```bash
-# Install the latest version
-go install github.com/bevelwork/quick_ssm@latest
-
-# Run it from anywhere
-quick_ssm
-```
 
 ## How It Works
 
@@ -171,15 +140,6 @@ quick_ssm
    - Check that SSM Agent is running on the instance
    - Ensure network connectivity between your machine and AWS
 
-### Debugging
-
-Enable AWS CLI debug logging:
-```bash
-export AWS_CLI_FILE_ENCODING=UTF-8
-export AWS_CLI_AUTO_PROMPT=off
-aws configure set cli_log_level debug
-```
-
 ## Dependencies
 
 - [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2)
@@ -188,52 +148,7 @@ aws configure set cli_log_level debug
   - STS service (for authentication)
 - AWS CLI (for SSM session management)
 
-## License
-
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
-
 ## Version Management
 
 This project uses a simple date-based versioning system: `major.minor.YYYYMMDD`
 
-### Version Format
-
-- **Major.Minor**: Set in `version.yml` file
-- **Date**: Automatically appended as YYYYMMDD format
-- **Example**: `v1.0.20241201` (version 1.0 released on December 1, 2024)
-
-### Automatic Versioning
-
-- **Main branch pushes**: Automatically create release with current date
-- **Manual releases**: Use GitHub Actions "Run workflow" to trigger release
-- **Release artifacts**: Binary and checksums are automatically generated
-
-### Manual Version Management
-
-Update the base version in `version.yml` and use the provided scripts:
-
-```bash
-# Show current version
-make version
-# or
-./scripts/version.sh current
-
-# Update major version
-make major 2
-# or
-./scripts/version.sh major 2
-
-# Update minor version  
-make minor 1
-# or
-./scripts/version.sh minor 1
-
-# Build release binary locally
-make build-release
-```
-
-### Release Process
-
-1. **Automatic**: Push to main branch triggers release with current date
-2. **Manual**: Use GitHub Actions "Run workflow" to create release
-3. **Version Updates**: Edit `version.yml` to change major/minor versions
