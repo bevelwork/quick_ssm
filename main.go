@@ -15,17 +15,13 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
 
-// This Utility quickly established a connection to an SSM-enabled
-// server. It pulls a list of all ec2 instances in the provided aws
-// account and region, and prints out friendly names for them.
-// The TUI allows the used to select which instance to connect to,
-// and creates a TTY session to it.
-// In the event of failure we have a --check option that will check
-// if the instance has a role associated with it, and other obvious
-// aspects that would prevent SSM from working.
+type InstanceInfo struct {
+	ID          string
+	Name        string
+	DisplayName string
+}
 
 func main() {
 	fmt.Println(strings.Repeat("-", 40))
@@ -41,16 +37,23 @@ func main() {
 
 	ec2Client := ec2.NewFromConfig(cfg)
 
-	reservations, err := getInstReservations(ec2Client, ctx)
+	instances, err := getInstances(ctx, ec2Client)
 	if err != nil {
 		log.Fatal(err)
+	}
+	longestName := 0
+	for _, inst := range instances {
+		if len(inst.DisplayName) > longestName {
+			longestName = len(inst.DisplayName)
+		}
 	}
 
-	instanceIDs, instanceNames, printOut, err := getInstNameInfo(reservations)
-	if err != nil {
-		log.Fatal(err)
+	for i, inst := range instances {
+		entry := fmt.Sprintf(
+			"%3d. %-*s %s", i+1, longestName, inst.DisplayName, inst.ID,
+		)
+		fmt.Println(entry)
 	}
-	fmt.Println(strings.Join(printOut, "\n"))
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Select instance. Blank, or non-numeric input will exit: ")
@@ -70,94 +73,58 @@ func main() {
 	}
 	fmt.Printf(
 		"Selected instance: %s %s\n",
-		instanceNames[instanceIDs[inputInt-1]], instanceIDs[inputInt-1],
+		instances[inputInt-1].DisplayName, instances[inputInt-1].ID,
 	)
 
 	fmt.Println("Connecting to instance. This may take a few moments: ")
 
 	// Start the SSM session using AWS CLI
-	if err := startSSMSession(instanceIDs[inputInt-1]); err != nil {
+	if err := startSSMSession(instances[inputInt-1].ID); err != nil {
 		log.Fatal("SSM session failed:", err)
 	}
 }
 
-// Get instance names, and a list of all names seen, and the longest name
-func getInstNameInfo(reservations []*types.Reservation) ([]string, map[string]string, []string, error) {
-	if len(reservations) == 0 {
-		return nil, nil, nil, fmt.Errorf("no instances found")
-	}
-	instanceNames := map[string]string{}
-	instanceIDs := []string{}
-	namesSeen := []string{}
-	for _, r := range reservations {
-		for _, i := range r.Instances {
-			instanceIDs = append(instanceIDs, *i.InstanceId)
-			name := "Unknown"
-
-			for _, tag := range i.Tags {
-				if *tag.Key == "Name" {
-					name = *tag.Value
-				}
-			}
-			instanceNames[*i.InstanceId] = name
-			namesSeen = append(namesSeen, name)
-		}
-	}
-	sort.Strings(instanceIDs)
-	nameCount := map[string]int{}
-	for _, id := range instanceIDs {
-		nameCount[instanceNames[id]]++
-		if nameCount[instanceNames[id]] > 1 {
-			instanceNames[id] = fmt.Sprintf("%s (%d)", instanceNames[id], nameCount[instanceNames[id]])
-		}
-	}
-
-	sort.Strings(namesSeen)
-	longestName := 0
-	for _, name := range namesSeen {
-		if len(name) > longestName {
-			longestName = len(name)
-		}
-	}
-	printout := make([]string, 0, len(namesSeen))
-	for idx, name := range namesSeen {
-		instanceID := ""
-		for id, instName := range instanceNames {
-			if name == instName {
-				instanceID = id
-				break
-			}
-		}
-		// Thre pading for digit
-		printout = append(
-			printout,
-			fmt.Sprintf("%3d. %-*s %s\n", idx+1, longestName, name, instanceID),
-		)
-	}
-	return instanceIDs, instanceNames, printout, nil
-}
-
-func getInstReservations(ec2Client *ec2.Client, ctx context.Context) ([]*types.Reservation, error) {
-	reservations := []*types.Reservation{}
-	resp, err := ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
-	if err != nil {
-		return nil, err
-	}
-	for i := range resp.Reservations {
-		reservations = append(reservations, &resp.Reservations[i])
-	}
-	for resp.NextToken != nil {
-		resp, err = ec2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{
-			NextToken: resp.NextToken,
-		})
+func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, error) {
+	paginator := ec2.NewDescribeInstancesPaginator(
+		ec2Client, &ec2.DescribeInstancesInput{},
+	)
+	instances := []*InstanceInfo{}
+	for paginator.HasMorePages() {
+		output, err := paginator.NextPage(ctx)
 		if err != nil {
 			return nil, err
 		}
-		for i := range resp.Reservations {
-			reservations = append(reservations, &resp.Reservations[i])
+		for _, i := range output.Reservations {
+			for _, inst := range i.Instances {
+				instances = append(instances, &InstanceInfo{
+					ID:   *inst.InstanceId,
+					Name: *inst.Tags[0].Value,
+				})
+			}
 		}
 	}
-	return reservations, nil
+	sort.Slice(instances, func(i, j int) bool {
+		if instances[i].Name == instances[j].Name {
+			return instances[i].ID < instances[j].ID
+		}
+		return instances[i].Name < instances[j].Name
+	})
+	addInstanceDisplayNames(instances)
+
+	return instances, nil
+}
+
+func addInstanceDisplayNames(instances []*InstanceInfo) {
+	countByName := map[string]int{}
+	for i := range instances {
+		inst := instances[i]
+		countByName[inst.Name]++
+		if countByName[inst.Name] > 1 {
+			inst.DisplayName = fmt.Sprintf("%s (%d)", inst.Name, countByName[inst.Name])
+		} else {
+			inst.DisplayName = inst.Name
+		}
+	}
 }
 
 // Start SSM session using AWS CLI
