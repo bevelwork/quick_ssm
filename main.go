@@ -53,6 +53,7 @@ type InstanceInfo struct {
 	ID          string // The EC2 instance ID
 	Name        string // The instance name from EC2 tags
 	DisplayName string // The formatted display name (may include numbering for duplicates)
+	State       string // The instance state (running, stopped, pending, etc.)
 }
 
 func main() {
@@ -122,8 +123,31 @@ func main() {
 			rowColor = ColorCyan // Subtle cyan for odd rows
 		}
 
+		// Color code the state
+		var stateColor string
+		switch inst.State {
+		case "running":
+			stateColor = ColorGreen
+		case "stopped":
+			stateColor = ColorRed
+		case "terminated":
+			stateColor = ColorRed
+		case "shutting-down":
+			stateColor = ColorRed
+		case "pending":
+			stateColor = ColorYellow
+		case "stopping":
+			stateColor = ColorYellow
+		case "starting":
+			stateColor = ColorYellow
+		default:
+			stateColor = ColorWhite
+		}
+
 		entry := fmt.Sprintf(
-			"%3d. %-*s %s", i+1, longestName, inst.DisplayName, inst.ID,
+			"%3d. %-*s %s [%s]",
+			i+1, longestName, inst.DisplayName, inst.ID,
+			color(inst.State, stateColor),
 		)
 		fmt.Println(color(entry, rowColor))
 	}
@@ -147,10 +171,50 @@ func main() {
 	}
 	selectedInstance := instances[inputInt-1]
 	fmt.Printf(
-		"Selected instance: %s %s\n",
+		"Selected instance: %s %s [%s]\n",
 		colorBold(selectedInstance.DisplayName, ColorGreen),
 		color(selectedInstance.ID, ColorWhite),
+		color(selectedInstance.State, getStateColor(selectedInstance.State)),
 	)
+
+	// Warn if instance is not running
+	if selectedInstance.State != "running" {
+		var warningColor string
+		var warningMessage string
+
+		switch selectedInstance.State {
+		case "stopped", "stopping":
+			warningColor = ColorRed
+			warningMessage = "⚠️  WARNING: Instance is not running - SSM connection will likely fail!"
+		case "terminated", "shutting-down":
+			warningColor = ColorRed
+			if selectedInstance.State == "terminated" {
+				warningMessage = "⚠️  WARNING: Instance is terminated - SSM connection is impossible!"
+			} else {
+				warningMessage = "⚠️  WARNING: Instance is shutting down - SSM connection is impossible!"
+			}
+		case "pending", "starting":
+			warningColor = ColorYellow
+			warningMessage = "⚠️  WARNING: Instance is still starting - SSM connection may not be ready yet"
+		default:
+			warningColor = ColorYellow
+			warningMessage = fmt.Sprintf("⚠️  WARNING: Instance is in %s state - SSM connection may not be available", selectedInstance.State)
+		}
+
+		fmt.Printf("%s\n", color(warningMessage, warningColor))
+		fmt.Printf("%s", color("Continue anyway? (y/N): ", ColorYellow))
+
+		confirmInput, err := reader.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+		confirmInput = strings.TrimSpace(confirmInput)
+
+		if confirmInput != "y" && confirmInput != "Y" && confirmInput != "yes" {
+			fmt.Println("Cancelled")
+			return
+		}
+	}
 
 	if *checkMode {
 		// Perform diagnostic checks
@@ -195,8 +259,9 @@ func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, 
 				}
 
 				instances = append(instances, &InstanceInfo{
-					ID:   *inst.InstanceId,
-					Name: instanceName,
+					ID:    *inst.InstanceId,
+					Name:  instanceName,
+					State: string(inst.State.Name),
 				})
 			}
 		}
@@ -290,15 +355,19 @@ func performDiagnostics(ctx context.Context, ec2Client *ec2.Client, iamClient *i
 		return fmt.Errorf("failed to get instance details: %v", err)
 	}
 
-	// Check 1: IAM Role Attachment
+	// Check 1: Instance State
+	stateResult := checkInstanceState(instance)
+	results = append(results, stateResult)
+
+	// Check 2: IAM Role Attachment
 	iamResult := checkIAMRole(ctx, iamClient, instance)
 	results = append(results, iamResult)
 
-	// Check 2: Internet Connectivity
+	// Check 3: Internet Connectivity
 	internetResult := checkInternetConnectivity(ctx, ec2Client, instance)
 	results = append(results, internetResult)
 
-	// Check 3: SSM Traffic Rules
+	// Check 4: SSM Traffic Rules
 	ssmResult := checkSSMTrafficRules(ctx, ec2Client, instance)
 	results = append(results, ssmResult)
 
@@ -322,6 +391,50 @@ func getInstanceDetails(ctx context.Context, ec2Client *ec2.Client, instanceID s
 	}
 
 	return &result.Reservations[0].Instances[0], nil
+}
+
+// checkInstanceState verifies if the instance is in a running state
+func checkInstanceState(instance *types.Instance) DiagnosticResult {
+	state := string(instance.State.Name)
+
+	switch state {
+	case "running":
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "PASS",
+			Message:   fmt.Sprintf("Instance is %s and ready for SSM connection", state),
+		}
+	case "stopped", "stopping":
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "FAIL",
+			Message:   fmt.Sprintf("Instance is %s - cannot connect via SSM", state),
+		}
+	case "terminated":
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "FAIL",
+			Message:   "Instance is terminated - SSM connection is impossible",
+		}
+	case "shutting-down":
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "FAIL",
+			Message:   "Instance is shutting down - SSM connection is impossible",
+		}
+	case "pending", "starting":
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "WARN",
+			Message:   fmt.Sprintf("Instance is %s - may not be ready for SSM connection yet", state),
+		}
+	default:
+		return DiagnosticResult{
+			CheckName: "Instance State",
+			Status:    "WARN",
+			Message:   fmt.Sprintf("Instance is in %s state - SSM connection may not be available", state),
+		}
+	}
 }
 
 // checkIAMRole verifies if the instance has an IAM role attached with SSM permissions
@@ -600,6 +713,27 @@ func checkRoleSSMPermissions(ctx context.Context, iamClient *iam.Client, roleNam
 
 func stringPtr(s string) *string {
 	return &s
+}
+
+func getStateColor(state string) string {
+	switch state {
+	case "running":
+		return ColorGreen
+	case "stopped":
+		return ColorRed
+	case "terminated":
+		return ColorRed
+	case "shutting-down":
+		return ColorRed
+	case "pending":
+		return ColorYellow
+	case "stopping":
+		return ColorYellow
+	case "starting":
+		return ColorYellow
+	default:
+		return ColorWhite
+	}
 }
 
 func displayDiagnosticResults(results []DiagnosticResult) {
