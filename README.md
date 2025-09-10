@@ -193,7 +193,7 @@ aws configure set cli_log_level debug
 
 ## License
 
-[Add your license information here]
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for details.
 
 ## Contributing
 
