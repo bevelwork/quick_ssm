@@ -4,8 +4,7 @@ A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems
 
 ![Basic Usage Demo](media/basic.gif)
 
-
-When inevitably some instance does not seem to be working we support a `--check` mode that lets you quickly diagnose common problems.
+When inevitably some instance does not work we support a `--check` mode that lets you quickly diagnose common problems.
 
 ![Diagnostic Mode Demo](media/check-mode.gif)
 
@@ -242,23 +241,3 @@ make build-release
 1. **Automatic**: Push to main branch triggers release with current date
 2. **Manual**: Use GitHub Actions "Run workflow" to create release
 3. **Version Updates**: Edit `version.yml` to change major/minor versions
-
-### Development
-
-```bash
-# Build for development
-make build
-
-# Run tests
-make test
-
-# Format and lint code
-make lint
-
-# Clean build artifacts
-make clean
-```
-
-## Contributing
-
-[Add contribution guidelines here]
