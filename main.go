@@ -48,12 +48,53 @@ func colorBold(text, colorCode string) string {
 	return colorCode + ColorBold + text + ColorReset
 }
 
+func colorInstState(state string) string {
+	switch state {
+	case "running":
+		return ColorGreen
+	case "stopped":
+		return ColorRed
+	case "terminated":
+		return ColorRed
+	case "shutting-down":
+		return ColorRed
+	case "pending":
+		return ColorYellow
+	case "stopping":
+		return ColorYellow
+	case "starting":
+		return ColorYellow
+	default:
+		return ColorWhite
+	}
+}
+
 // InstanceInfo represents an EC2 instance with its metadata for display purposes.
 type InstanceInfo struct {
 	ID          string // The EC2 instance ID
 	Name        string // The instance name from EC2 tags
 	DisplayName string // The formatted display name (may include numbering for duplicates)
 	State       string // The instance state (running, stopped, pending, etc.)
+}
+
+func printHeader(checkMode bool, privateMode bool, callerIdentity *sts.GetCallerIdentityOutput) {
+	header := []string{
+		color(strings.Repeat("-", 40), ColorBlue),
+		"-- SSM Quick Connect --",
+		color(strings.Repeat("-", 40), ColorBlue),
+	}
+	if checkMode {
+		header = append(header, colorBold("<> <> DIAGNOSTIC MODE <> <>", ColorCyan))
+	}
+	if !privateMode {
+		header = append(header, fmt.Sprintf(
+			"  Account: %s \n  User: %s",
+			*callerIdentity.Account, *callerIdentity.Arn,
+		))
+		header = append(header, color(strings.Repeat("-", 40), ColorBlue))
+	}
+
+	fmt.Println(strings.Join(header, "\n"))
 }
 
 func main() {
@@ -81,28 +122,9 @@ func main() {
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to authenticate with aws: %v", err))
 	}
-
-	spacer := strings.Repeat("-", 40)
-	header := []string{
-		spacer,
-		"-- SSM Quick Connect --",
-		spacer,
-	}
-	if *checkMode {
-		header = append(header, colorBold("<> <> DIAGNOSTIC MODE <> <>", ColorCyan))
-	}
-	if !*privateMode {
-		header = append(header, fmt.Sprintf(
-			"  Account: %s \n  User: %s",
-			*callerIdentity.Account, *callerIdentity.Arn,
-		))
-		header = append(header, spacer)
-	}
-
-	fmt.Println(strings.Join(header, "\n"))
+	printHeader(*checkMode, *privateMode, callerIdentity)
 
 	ec2Client := ec2.NewFromConfig(cfg)
-
 	instances, err := getInstances(ctx, ec2Client)
 	if err != nil {
 		log.Fatal(err)
@@ -124,26 +146,7 @@ func main() {
 		}
 
 		// Color code the state
-		var stateColor string
-		switch inst.State {
-		case "running":
-			stateColor = ColorGreen
-		case "stopped":
-			stateColor = ColorRed
-		case "terminated":
-			stateColor = ColorRed
-		case "shutting-down":
-			stateColor = ColorRed
-		case "pending":
-			stateColor = ColorYellow
-		case "stopping":
-			stateColor = ColorYellow
-		case "starting":
-			stateColor = ColorYellow
-		default:
-			stateColor = ColorWhite
-		}
-
+		stateColor := colorInstState(inst.State)
 		entry := fmt.Sprintf(
 			"%3d. %-*s %s [%s]",
 			i+1, longestName, inst.DisplayName, inst.ID,
@@ -151,7 +154,6 @@ func main() {
 		)
 		fmt.Println(color(entry, rowColor))
 	}
-	fmt.Println(color(spacer, ColorBlue))
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s", color("Select instance. Blank, or non-numeric input will exit: ", ColorYellow))
