@@ -1,3 +1,7 @@
+// Package main provides a command-line tool for quickly connecting to AWS EC2 instances
+// via AWS Systems Manager (SSM) Session Manager. The tool lists all EC2 instances in
+// the current AWS account and provides an interactive interface for selecting and
+// connecting to instances using SSM sessions.
 package main
 
 import (
@@ -19,10 +23,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
+// InstanceInfo represents an EC2 instance with its metadata for display purposes.
 type InstanceInfo struct {
-	ID          string
-	Name        string
-	DisplayName string
+	ID          string // The EC2 instance ID
+	Name        string // The instance name from EC2 tags
+	DisplayName string // The formatted display name (may include numbering for duplicates)
 }
 
 func main() {
@@ -116,6 +121,9 @@ func main() {
 	}
 }
 
+// getInstances retrieves all EC2 instances from the AWS account and returns them
+// as a sorted list of InstanceInfo structs. The function uses pagination to handle
+// accounts with large numbers of instances and extracts instance names from EC2 tags.
 func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, error) {
 	paginator := ec2.NewDescribeInstancesPaginator(
 		ec2Client, &ec2.DescribeInstancesInput{},
@@ -146,6 +154,9 @@ func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, 
 	return instances, nil
 }
 
+// addInstanceDisplayNames processes a slice of InstanceInfo structs and updates
+// the DisplayName field to handle duplicate instance names by appending numbers
+// (e.g., "web-server (2)"). Instances with unique names keep their original name.
 func addInstanceDisplayNames(instances []*InstanceInfo) {
 	countByName := map[string]int{}
 	for i := range instances {
@@ -159,7 +170,10 @@ func addInstanceDisplayNames(instances []*InstanceInfo) {
 	}
 }
 
-// Start SSM session using AWS CLI
+// startSSMSession establishes an interactive SSM session to the specified EC2 instance
+// using the AWS CLI. The function handles signal interception for graceful shutdown
+// and properly manages the subprocess lifecycle. Returns an error if the session
+// cannot be established or terminates unexpectedly.
 func startSSMSession(instanceID string) error {
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
