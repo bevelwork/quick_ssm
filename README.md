@@ -19,6 +19,16 @@ When inevitably some instance does not work we support a `--check` mode that let
 - **Graceful Shutdown**: Proper signal handling for clean session termination
 - **Private Mode**: Hide account information for screenshots and demos
 
+We work well with other AWS CLI tools:
+
+```bash
+quick_ssm # Use default profile
+quick_ssm --check # Run in diagnostic mode
+AWS_PROFILE=production quick_ssm # Use specific profile
+aws-vault exec production -- quick_ssm # Using aws-vault
+granted production quick_ssm # Using granted
+```
+
 ## Prerequisites
 
 ### Required Software
@@ -28,12 +38,7 @@ When inevitably some instance does not work we support a `--check` mode that let
 
 ### AWS Configuration
 
-1. **AWS Credentials**: Configure your AWS credentials using one of these methods:
-   - AWS CLI: `aws configure`
-   - Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`
-   - IAM roles (if running on EC2)
-   - AWS credentials file
-
+1. **AWS Credentials**: Configure your AWS credentials one of these methods:
 2. **Required IAM Permissions**: Your AWS credentials need the following permissions:
    ```json
    {
