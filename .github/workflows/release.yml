@@ -85,7 +85,7 @@ jobs:
         download-url: https://github.com/bevelwork/quick_ssm/archive/refs/tags/${{ steps.version.outputs.version }}.tar.gz
         commit-message: quick-ssm ${{ steps.version.outputs.version }}
       env:
-        HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.BREW }}
+        COMMITER_TOKEN : ${{ secrets.BREW }}
 
     - name: Create Release
       if: steps.version_check.outputs.skip_release == 'false'
