@@ -21,7 +21,7 @@ help:
 # Build the binary
 build:
 	@echo "Building quick_ssm..."
-	go build -v -ldflags "-X github.com/bevelwork/quick_ssm/version.Full=$$(./scripts/version.sh print-full)" -o quick_ssm .
+	go build -v -o quick_ssm .
 
 # Run tests
 test:

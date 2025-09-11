@@ -27,14 +27,14 @@ read_version() {
 
     local major=$(grep '^\s*Major\s*=\s*' version/version.go | sed -E 's/.*Major\s*=\s*([0-9]+).*/\1/')
     local minor=$(grep '^\s*Minor\s*=\s*' version/version.go | sed -E 's/.*Minor\s*=\s*([0-9]+).*/\1/')
-    echo "${major}.${minor}"
+    local patch=$(grep '^\s*PatchDate\s*=\s*' version/version.go | sed -E 's/.*PatchDate\s*=\s*"([0-9]+)".*/\1/')
+    echo "${major}.${minor}.${patch}"
 }
 
 # Function to generate full version with date
 generate_version() {
-    local base_version=$(read_version)
-    local date=$(date +%Y%m%d)
-    echo "v${base_version}.${date}"
+    local base=$(read_version)
+    echo "v${base}"
 }
 
 # Function to show current version
@@ -59,8 +59,13 @@ update_major() {
         exit 1
     fi
     
-    # Update version/version.go
+    # Update version/version.go (Major and PatchDate, and Full)
+    local today=$(date +%Y%m%d)
     sed -i "s/^\(\s*Major\s*=\s*\).*/\1${new_major}/" version/version.go
+    sed -i "s/^\(\s*PatchDate\s*=\s*\)\"[0-9]*\"/\1\"${today}\"/" version/version.go
+    # Recompute Full
+    local minor=$(grep '^\s*Minor\s*=\s*' version/version.go | sed -E 's/.*Minor\s*=\s*([0-9]+).*/\1/')
+    sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${new_major}.${minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated major version to: $new_major"
     show_version
 }
@@ -74,14 +79,25 @@ update_minor() {
         exit 1
     fi
     
-    # Update version/version.go
+    # Update version/version.go (Minor and PatchDate, and Full)
+    local today=$(date +%Y%m%d)
     sed -i "s/^\(\s*Minor\s*=\s*\).*/\1${new_minor}/" version/version.go
+    sed -i "s/^\(\s*PatchDate\s*=\s*\)\"[0-9]*\"/\1\"${today}\"/" version/version.go
+    # Recompute Full
+    local major=$(grep '^\s*Major\s*=\s*' version/version.go | sed -E 's/.*Major\s*=\s*([0-9]+).*/\1/')
+    sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${major}.${new_minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated minor version to: $new_minor"
     show_version
 }
 
 # Function to build release binary
 build_release() {
+    # Ensure PatchDate and Full are up to date before build
+    local today=$(date +%Y%m%d)
+    local major=$(grep '^\s*Major\s*=\s*' version/version.go | sed -E 's/.*Major\s*=\s*([0-9]+).*/\1/')
+    local minor=$(grep '^\s*Minor\s*=\s*' version/version.go | sed -E 's/.*Minor\s*=\s*([0-9]+).*/\1/')
+    sed -i "s/^\(\s*PatchDate\s*=\s*\)\"[0-9]*\"/\1\"${today}\"/" version/version.go
+    sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${major}.${minor}.${today}\"/" version/version.go
     local version=$(generate_version)
     local binary_name="quick_ssm-${version}-linux-amd64"
     

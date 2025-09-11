@@ -30,15 +30,11 @@ jobs:
     - name: Read version from version/version.go
       id: version
       run: |
-        # Read major and minor from version/version.go
         MAJOR=$(grep -E '^\s*Major\s*=\s*[0-9]+' version/version.go | sed -E 's/.*Major\s*=\s*([0-9]+).*/\1/')
         MINOR=$(grep -E '^\s*Minor\s*=\s*[0-9]+' version/version.go | sed -E 's/.*Minor\s*=\s*([0-9]+).*/\1/')
-        
-        # Get current date in YYYYMMDD format
-        DATE=$(date +%Y%m%d)
-        
-        # Create version string
-        VERSION="v${MAJOR}.${MINOR}.${DATE}"
+        DATE=$(grep -E '^\s*PatchDate\s*=\s*"[0-9]+"' version/version.go | sed -E 's/.*"([0-9]+)".*/\1/')
+        FULL="$MAJOR.$MINOR.$DATE"
+        VERSION="$FULL"
         
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "major=$MAJOR" >> $GITHUB_OUTPUT
@@ -57,12 +53,11 @@ jobs:
           echo "skip_release=false" >> $GITHUB_OUTPUT
         fi
 
-    - name: Build binary with embedded version
+    - name: Build binary
       if: steps.version_check.outputs.skip_release == 'false'
       run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        echo "Building quick_ssm with version ${VERSION}"
-        go build -v -ldflags "-X github.com/bevelwork/quick_ssm/version.Full=${VERSION}" -o quick_ssm .
+        echo "Building quick_ssm"
+        go build -v -o quick_ssm .
 
     - name: Create and push tag
       if: steps.version_check.outputs.skip_release == 'false'
