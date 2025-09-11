@@ -34,7 +34,7 @@ read_version() {
 # Function to generate full version with date
 generate_version() {
     local base=$(read_version)
-    echo "v${base}"
+    echo "${base}"
 }
 
 # Function to show current version
