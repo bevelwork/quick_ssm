@@ -57,14 +57,13 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		flag.PrintDefaults()
 	}
-	shortVersion := flag.Bool("v", false, "Print version and exit")
-	longVersion := flag.Bool("version", false, "Print version and exit")
+	versionFlag := flag.Bool("version", false, "Print version and exit")
 	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
 	portForward := flag.String("port-forward", "", "Port forward in the form LOCAL:REMOTE or a single port (uses same local and remote)")
 	checkMode := flag.Bool("check", false, "Perform diagnostic checks on the selected instance")
 	flag.Parse()
 
-	if *shortVersion || *longVersion {
+	if *versionFlag {
 		fmt.Println(resolveVersion())
 		return
 	}

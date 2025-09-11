@@ -46,12 +46,14 @@ granted production quick_ssm # Using granted
 ### Install with Go
 ```bash
 go install github.com/bevelwork/quick_ssm@latest
+quick-ssm --version
 ```
 
 ### Install with Homebrew (macOS/Linux)
 ```bash
 brew tap bevelwork/quick_ssm https://github.com/bevelwork/quick_ssm
 brew install quick-ssm
+quick-ssm --version
 ```
 
 ### Or Build from Source
@@ -59,6 +61,7 @@ brew install quick-ssm
 git clone https://github.com/bevelwork/quick_ssm.git
 cd quick_ssm
 go build -o quick_ssm .
+./quick-ssm --version
 ```
 
 ### What Diagnostic Mode Checks
