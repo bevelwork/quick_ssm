@@ -2,6 +2,7 @@
 // via AWS Systems Manager (SSM) Session Manager. The tool lists all EC2 instances in
 // the current AWS account and provides an interactive interface for selecting and
 // connecting to instances using SSM sessions.
+
 package main
 
 import (
