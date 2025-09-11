@@ -38,15 +38,12 @@ clean:
 # Version management
 version:
 	@./scripts/version.sh current
-	@./scripts/version.sh update-formula
 
 major:
 	@./scripts/version.sh major $(filter-out $@,$(MAKECMDGOALS))
-	@./scripts/version.sh update-formula
 
 minor:
 	@./scripts/version.sh minor $(filter-out $@,$(MAKECMDGOALS))
-	@./scripts/version.sh update-formula
 
 build-release:
 	@./scripts/version.sh build

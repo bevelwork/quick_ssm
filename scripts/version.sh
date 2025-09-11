@@ -68,8 +68,6 @@ update_major() {
     sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${new_major}.${minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated major version to: $new_major"
     show_version
-    # Also update Homebrew formula to match the new version
-    update_formula
 }
 
 # Function to update minor version
@@ -90,8 +88,6 @@ update_minor() {
     sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${major}.${new_minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated minor version to: $new_minor"
     show_version
-    # Also update Homebrew formula to match the new version
-    update_formula
 }
 
 # Function to build release binary
@@ -121,22 +117,6 @@ build_release() {
     cat "${binary_name}.sha256"
 }
 
-# Update the in-repo Homebrew formula to point at current Full and correct sha256
-update_formula() {
-    local version=$(generate_version)
-    local archive_url="https://github.com/bevelwork/quick_ssm/archive/refs/tags/${version}.tar.gz"
-    print_color $BLUE "Updating Homebrew formula to ${version}"
-    local sha=$(curl -Ls ${archive_url} | sha256sum | awk '{print $1}')
-    local formula="HomebrewFormula/quick-ssm.rb"
-    if [ ! -f "$formula" ]; then
-        print_color $RED "Formula file not found: $formula"
-        exit 1
-    fi
-    sed -i "s|^\s*url \".*\"|  url \"${archive_url}\"|" "$formula"
-    sed -i "s|^\s*sha256 \".*\"|  sha256 \"${sha}\"|" "$formula"
-    print_color $GREEN "Updated formula to ${version}"
-}
-
 # Main script logic
 case "${1:-help}" in
     "current"|"version")
@@ -153,9 +133,6 @@ case "${1:-help}" in
         ;;
     "build")
         build_release
-        ;;
-    "update-formula")
-        update_formula
         ;;
     "help"|*)
         print_color $BLUE "Quick SSM Version Management"
