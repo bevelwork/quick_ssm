@@ -7,7 +7,7 @@ import "fmt"
 // injected at build time into Full.
 const (
 	Major = 1
-	Minor = 21
+	Minor = 22
 	// PatchDate uses YYYYMMDD format
 	PatchDate = "20250911"
 )

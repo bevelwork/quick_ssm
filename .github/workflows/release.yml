@@ -112,3 +112,19 @@ jobs:
           ./quick_ssm.sha256
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Bump Homebrew formula
+      if:  steps.version_check.outputs.skip_release == 'false'
+      runs-on: ubuntu-latest
+      permissions:
+        contents: read
+      steps:
+        - uses: mislav/bump-homebrew-formula-action@v3
+          with:
+            formula-name: quick-ssm
+            homebrew-tap: bevelwork/homebrew-tap
+            base-branch: main
+            download-url: https://github.com/bevelwork/quick_ssm/releases/download/${{ steps.version.outputs.version }}/quick_ssm
+            commit-message: Update formula for {{ version }}
+          env:
+            COMMITTER_TOKEN: ${{ secrets.BREW }}
