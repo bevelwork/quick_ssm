@@ -5,7 +5,7 @@ package version
 // injected at build time into Full.
 const (
 	Major = 1
-	Minor = 11
+	Minor = 12
 )
 
 // Full should be set at build time using:

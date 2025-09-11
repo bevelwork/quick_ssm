@@ -52,11 +52,7 @@ type InstanceInfo struct {
 var version = ""
 
 func main() {
-	// Confirm that the AWS CLI is installed
-	if _, err := exec.LookPath("aws"); err != nil {
-		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
-	}
-
+	// Parse flags
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		flag.PrintDefaults()
@@ -73,6 +69,10 @@ func main() {
 		return
 	}
 
+	// Confirm that the AWS CLI is installed
+	if _, err := exec.LookPath("aws"); err != nil {
+		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
+	}
 	ctx := context.Background()
 
 	cfg, err := config.LoadDefaultConfig(ctx)
@@ -883,5 +883,10 @@ func resolveVersion() string {
 	if strings.TrimSpace(versionpkg.Full) != "" {
 		return versionpkg.Full
 	}
+	// LOG Warning
+	log.Println(
+		"[WARNING]: This version was not compiled with a version tag.",
+		"Usually this means that the binary was built locally.",
+	)
 	return fmt.Sprintf("v%d.%d.%s", versionpkg.Major, versionpkg.Minor, "unknown")
 }
