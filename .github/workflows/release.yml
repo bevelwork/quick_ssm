@@ -76,17 +76,6 @@ jobs:
         echo "Generated checksum:"
         cat quick_ssm.sha256
         
-    - name: Open PR to bump Homebrew tap formula
-      if: steps.version_check.outputs.skip_release == 'false'
-      uses: mislav/bump-homebrew-formula-action@v3
-      with:
-        formula-name: quick-ssm
-        homebrew-tap: bevelwork/homebrew-tap
-        download-url: https://github.com/bevelwork/quick_ssm/archive/refs/tags/${{ steps.version.outputs.version }}.tar.gz
-        commit-message: quick-ssm ${{ steps.version.outputs.version }}
-      env:
-        COMMITER_TOKEN : ${{ secrets.BREW }}
-
     - name: Create Release
       if: steps.version_check.outputs.skip_release == 'false'
       run: |
