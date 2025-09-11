@@ -62,6 +62,7 @@ func main() {
 	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
 	portForward := flag.String("port-forward", "", "Port forward in the form LOCAL:REMOTE or a single port (uses same local and remote)")
 	checkMode := flag.Bool("check", false, "Perform diagnostic checks on the selected instance")
+	filterStr := flag.String("filter", "", "Filter instances by name (including substrings)")
 	flag.Parse()
 
 	if *versionFlag {
@@ -87,9 +88,12 @@ func main() {
 	printHeader(*checkMode, *privateMode, callerIdentity)
 
 	ec2Client := ec2.NewFromConfig(cfg)
-	instances, err := getInstances(ctx, ec2Client)
+	instances, err := getInstances(ctx, ec2Client, filterStr)
 	if err != nil {
 		log.Fatal(err)
+	}
+	if len(instances) == 0 {
+		log.Fatal("No instances found")
 	}
 	longestName := 0
 	for _, inst := range instances {
@@ -214,7 +218,7 @@ func main() {
 // getInstances retrieves all EC2 instances from the AWS account and returns them
 // as a sorted list of InstanceInfo structs. The function uses pagination to handle
 // accounts with large numbers of instances and extracts instance names from EC2 tags.
-func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, error) {
+func getInstances(ctx context.Context, ec2Client *ec2.Client, filterStr *string) ([]*InstanceInfo, error) {
 	paginator := ec2.NewDescribeInstancesPaginator(
 		ec2Client, &ec2.DescribeInstancesInput{},
 	)
@@ -233,6 +237,11 @@ func getInstances(ctx context.Context, ec2Client *ec2.Client) ([]*InstanceInfo, 
 						instanceName = *tag.Value
 						break
 					}
+				}
+				if *filterStr != "" && !strings.Contains(
+					strings.ToLower(instanceName), strings.ToLower(*filterStr),
+				) {
+					continue
 				}
 
 				instances = append(instances, &InstanceInfo{
