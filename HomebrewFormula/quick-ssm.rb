@@ -3,7 +3,7 @@ class QuickSsm < Formula
   homepage "https://github.com/bevelwork/quick_ssm"
   url "https://github.com/bevelwork/quick_ssm/archive/refs/tags/v0.0.00000000.tar.gz"
   sha256 "sha256placeholder"
-  license "MIT"
+  license "APACHE-2.0"
 
   head "https://github.com/bevelwork/quick_ssm.git", branch: "main"
 
