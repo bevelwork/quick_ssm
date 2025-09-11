@@ -90,7 +90,7 @@ jobs:
         ## Direct installation
         
         \`\`\`bash
-        go get github.com/bevelwork/quick_ssm@$VERSION
+        go install github.com/bevelwork/quick_ssm@$VERSION
         \`\`\`
         
         ## Using this release
