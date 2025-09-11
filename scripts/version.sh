@@ -68,6 +68,8 @@ update_major() {
     sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${new_major}.${minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated major version to: $new_major"
     show_version
+    # Also update Homebrew formula to match the new version
+    update_formula
 }
 
 # Function to update minor version
@@ -88,6 +90,8 @@ update_minor() {
     sed -i "s/^\(\s*var Full = \)\"v[0-9]+\.[0-9]+\.[0-9]+\"/\1\"v${major}.${new_minor}.${today}\"/" version/version.go
     print_color $GREEN "Updated minor version to: $new_minor"
     show_version
+    # Also update Homebrew formula to match the new version
+    update_formula
 }
 
 # Function to build release binary
