@@ -57,6 +57,7 @@ func main() {
 		flag.PrintDefaults()
 	}
 	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
+	portForward := flag.String("port-forward", "", "Port forward in the form LOCAL:REMOTE or a single port (uses same local and remote)")
 	checkMode := flag.Bool("check", false, "Perform diagnostic checks on the selected instance")
 	flag.Parse()
 
@@ -177,6 +178,19 @@ func main() {
 		return
 	}
 
+	// If port forwarding is requested, start a port forwarding session
+	if strings.TrimSpace(*portForward) != "" {
+		localPort, remotePort, err := parsePortForwardFlag(*portForward)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Printf("Starting port forward %d -> %s:%d. This may take a few moments...\n", localPort, selectedInstance.ID, remotePort)
+		if err := startSSMPortForwardSession(selectedInstance.ID, localPort, remotePort); err != nil {
+			log.Fatal("SSM port-forward session failed:", err)
+		}
+		return
+	}
+
 	fmt.Println("Connecting to instance. This may take a few moments: ")
 
 	// Start the SSM session using AWS CLI
@@ -282,6 +296,82 @@ func startSSMSession(instanceID string) error {
 	}
 
 	return nil
+}
+
+// startSSMPortForwardSession starts an SSM port forwarding session using the AWS CLI.
+// It forwards from localhost:localPort to instance:remotePort using the
+// AWS-StartPortForwardingSession document.
+func startSSMPortForwardSession(instanceID string, localPort int, remotePort int) error {
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Build parameters for the port forwarding document
+	// --parameters expects JSON-like arrays of strings
+	params := fmt.Sprintf("portNumber=[\"%d\"],localPortNumber=[\"%d\"]", remotePort, localPort)
+
+	cmd := exec.Command(
+		"aws", "ssm", "start-session",
+		"--target", instanceID,
+		"--document-name", "AWS-StartPortForwardingSession",
+		"--parameters", params,
+	)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start SSM port-forward session: %v", err)
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case <-sigChan:
+		log.Println("Received interrupt signal, terminating SSM port-forward session...")
+		cmd.Process.Signal(syscall.SIGINT)
+		<-done
+	case err := <-done:
+		if err != nil {
+			return fmt.Errorf("SSM port-forward session ended with error: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// parsePortForwardFlag parses values like "80" (local=80, remote=80) or
+// "8080:80" (local=8080, remote=80).
+func parsePortForwardFlag(value string) (int, int, error) {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return 0, 0, fmt.Errorf("port-forward value cannot be empty")
+	}
+	if strings.Contains(trimmed, ":") {
+		parts := strings.Split(trimmed, ":")
+		if len(parts) != 2 {
+			return 0, 0, fmt.Errorf("invalid port-forward value: %s (expected LOCAL:REMOTE)", value)
+		}
+		lp, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid local port: %v", err)
+		}
+		rp, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return 0, 0, fmt.Errorf("invalid remote port: %v", err)
+		}
+		return lp, rp, nil
+	}
+
+	// Single port: use same for local and remote
+	p, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid port: %v", err)
+	}
+	return p, p, nil
 }
 
 // DiagnosticResult represents the result of a diagnostic check

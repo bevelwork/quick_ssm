@@ -1,29 +1,36 @@
 # Quick SSM
 
-A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems Manager (SSM) Session Manager. This tool lists all your EC2 instances and allows you to select one for an interactive SSM session.
+A simple Go CLI tool for quickly connecting to AWS EC2 instances via AWS Systems Manager (SSM) Session Manager. This tool lists all your EC2 instances and allows you to select one for an interactive SSM session. This tool stays pretty simple leveraging the `aws-cli` to marshal the websocket connection to their platform which lets this code stay pretty static.
 
 ![Basic Usage Demo](media/basic.gif)
 
-When inevitably some instance does not work we support a `--check` mode that lets you quickly diagnose common problems.
+We support simple port forwarding:
+
+![Port Forwarding Demo](media/port-forward.gif)
+
+When inevitably some instance does not work we support a `--check` mode that lets you quickly diagnose common problems:
 
 ![Diagnostic Mode Demo](media/check-mode.gif)
 
 ## ✨ Features
 
 - **Interactive Instance Selection**: Lists all EC2 instances with numbered menu
+- **Port Forwarding**: Forward a local TCP port to the instance via SSM
+- **Diagnostic Mode**: Comprehensive checks for SSM connectivity requirements
 - **Instance State Display**: Shows running status with color-coded indicators
 - **Smart Naming**: Handles duplicate instance names with numbering (e.g., "web-server (2)")
-- **Diagnostic Mode**: Comprehensive checks for SSM connectivity requirements
 - **State Warnings**: Alerts when trying to connect to non-running instances
 - **Visual Feedback**: Color-coded output with alternating row colors for easy scanning
 - **Graceful Shutdown**: Proper signal handling for clean session termination
 - **Private Mode**: Hide account information for screenshots and demos
 
-We work well with other AWS CLI tools:
+Calling is straight forward and we work well with other AWS CLI tools:
 
 ```bash
 quick_ssm # Use default profile
 quick_ssm --check # Run in diagnostic mode
+quick_ssm --port-forward 80 # Forward localhost:80 to instance:80
+quick_ssm --port-forward 8080:80 # Forward localhost:8080 to instance:80
 AWS_PROFILE=production quick_ssm # Use specific profile
 aws-vault exec production -- quick_ssm # Using aws-vault
 granted production quick_ssm # Using granted
@@ -36,8 +43,6 @@ granted production quick_ssm # Using granted
 1. **Go 1.24.4 or later** - [Download and install Go](https://golang.org/dl/)
 2. **AWS CLI** - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions)
 
-## 🚀 Quick Start
-
 ### Install with Go
 ```bash
 go install github.com/bevelwork/quick_ssm@latest
@@ -49,8 +54,6 @@ git clone https://github.com/bevelwork/quick_ssm.git
 cd quick_ssm
 go build -o quick_ssm .
 ```
-
-## 📖 Usage
 
 ### What Diagnostic Mode Checks
 
@@ -143,4 +146,3 @@ The `--check` flag verifies SSM connectivity requirements:
 ## Version Management
 
 This project uses a simple date-based versioning system: `major.minor.YYYYMMDD`
-
