@@ -51,7 +51,7 @@ quick-ssm --version
 
 ### Install with Homebrew (macOS/Linux)
 ```bash
-brew tap bevelwork/quick_ssm https://github.com/bevelwork/quick_ssm
+brew tap bevelwork/homebrew-tap # See https://github.com/bevelwork/homebrew-tap
 brew install quick-ssm
 quick-ssm --version
 ```
