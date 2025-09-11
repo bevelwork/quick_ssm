@@ -43,6 +43,12 @@ granted production quick_ssm # Using granted
 1. **Go 1.24.4 or later** - [Download and install Go](https://golang.org/dl/)
 2. **AWS CLI** - [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions)
 
+### Install with Homebrew (macOS/Linux)
+```bash
+brew tap bevelwork/tap https://github.com/bevelwork/quick_ssm
+brew install quick-ssm
+```
+
 ### Install with Go
 ```bash
 go install github.com/bevelwork/quick_ssm@latest
