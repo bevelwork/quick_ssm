@@ -59,10 +59,11 @@ func main() {
 		flag.PrintDefaults()
 	}
 	versionFlag := flag.Bool("version", false, "Print version and exit")
-	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
 	portForward := flag.String("port-forward", "", "Port forward in the form LOCAL:REMOTE or a single port (uses same local and remote)")
 	checkMode := flag.Bool("check", false, "Perform diagnostic checks on the selected instance")
 	filterStr := flag.String("filter", "", "Filter instances by name (including substrings)")
+	region := flag.String("region", "", "AWS region to use (defaults to current region)")
+	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
 	flag.Parse()
 
 	if *versionFlag {
@@ -74,9 +75,14 @@ func main() {
 	if _, err := exec.LookPath("aws"); err != nil {
 		log.Fatal("AWS CLI not found. Please install it and try again. https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html#getting-started-install-instructions")
 	}
+	// Confirm this looks like a region
+	if *region != "" && strings.Count(*region, "-") != 2 {
+		log.Fatal("Region must be specified as a region name, e.g. us-east-1")
+	}
+
 	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(ctx)
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region))
 	if err != nil {
 		log.Fatal(err)
 	}
