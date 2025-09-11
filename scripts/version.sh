@@ -18,15 +18,15 @@ print_color() {
     echo -e "${color}${message}${NC}"
 }
 
-# Function to read version from YAML
+# Function to read version from version/version.go
 read_version() {
-    if [ ! -f "version.yml" ]; then
-        print_color $RED "version.yml not found!"
+    if [ ! -f "version/version.go" ]; then
+        print_color $RED "version/version.go not found!"
         exit 1
     fi
-    
-    local major=$(grep 'major:' version.yml | awk '{print $2}')
-    local minor=$(grep 'minor:' version.yml | awk '{print $2}')
+
+    local major=$(grep '^\s*Major\s*=\s*' version/version.go | sed -E 's/.*Major\s*=\s*([0-9]+).*/\1/')
+    local minor=$(grep '^\s*Minor\s*=\s*' version/version.go | sed -E 's/.*Minor\s*=\s*([0-9]+).*/\1/')
     echo "${major}.${minor}"
 }
 
@@ -45,6 +45,11 @@ show_version() {
     print_color $GREEN "Full version: $full_version"
 }
 
+# Print only the full version string (for tooling)
+print_full_version() {
+    generate_version
+}
+
 # Function to update major version
 update_major() {
     local new_major=$1
@@ -54,8 +59,8 @@ update_major() {
         exit 1
     fi
     
-    # Update version.yml
-    sed -i "s/major: .*/major: $new_major/" version.yml
+    # Update version/version.go
+    sed -i "s/^\(\s*Major\s*=\s*\).*/\1${new_major}/" version/version.go
     print_color $GREEN "Updated major version to: $new_major"
     show_version
 }
@@ -69,8 +74,8 @@ update_minor() {
         exit 1
     fi
     
-    # Update version.yml
-    sed -i "s/minor: .*/minor: $new_minor/" version.yml
+    # Update version/version.go
+    sed -i "s/^\(\s*Minor\s*=\s*\).*/\1${new_minor}/" version/version.go
     print_color $GREEN "Updated minor version to: $new_minor"
     show_version
 }
@@ -100,6 +105,9 @@ build_release() {
 case "${1:-help}" in
     "current"|"version")
         show_version
+        ;;
+    "print-full")
+        print_full_version
         ;;
     "major")
         update_major "$2"

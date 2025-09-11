@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	versionpkg "github.com/bevelwork/quick_ssm/version"
 )
 
 // ANSI color codes for terminal output
@@ -46,6 +47,10 @@ type InstanceInfo struct {
 	State       string // The instance state (running, stopped, pending, etc.)
 }
 
+// Deprecated: kept for backward compatibility if older ldflags are used.
+// Prefer setting github.com/bevelwork/quick_ssm/version.Full instead.
+var version = ""
+
 func main() {
 	// Confirm that the AWS CLI is installed
 	if _, err := exec.LookPath("aws"); err != nil {
@@ -56,10 +61,17 @@ func main() {
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
 		flag.PrintDefaults()
 	}
+	shortVersion := flag.Bool("v", false, "Print version and exit")
+	longVersion := flag.Bool("version", false, "Print version and exit")
 	privateMode := flag.Bool("private-mode", false, "Hide account information during execution")
 	portForward := flag.String("port-forward", "", "Port forward in the form LOCAL:REMOTE or a single port (uses same local and remote)")
 	checkMode := flag.Bool("check", false, "Perform diagnostic checks on the selected instance")
 	flag.Parse()
+
+	if *shortVersion || *longVersion {
+		fmt.Println(resolveVersion())
+		return
+	}
 
 	ctx := context.Background()
 
@@ -859,4 +871,17 @@ func displayDiagnosticResults(results []DiagnosticResult) {
 	} else {
 		fmt.Printf("\n%s\n", color("⚠️  Some warnings detected. Instance may work but review the warnings above.", ColorYellow))
 	}
+}
+
+// resolveVersion returns the version string. If ldflags-injected version is empty,
+// it attempts to derive a dev version from version/version.go, but will not be able
+// to display the compile date.
+func resolveVersion() string {
+	if strings.TrimSpace(version) != "" {
+		return version
+	}
+	if strings.TrimSpace(versionpkg.Full) != "" {
+		return versionpkg.Full
+	}
+	return fmt.Sprintf("v%d.%d.%s", versionpkg.Major, versionpkg.Minor, "unknown")
 }
