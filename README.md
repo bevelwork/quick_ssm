@@ -45,7 +45,7 @@ granted production quick_ssm # Using granted
 
 ### Install with Homebrew (macOS/Linux)
 ```bash
-brew tap bevelwork/tap https://github.com/bevelwork/quick_ssm
+brew tap bevelwork/quick_ssm https://github.com/bevelwork/quick_ssm
 brew install quick-ssm
 ```
 
