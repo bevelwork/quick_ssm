@@ -3,10 +3,10 @@ module github.com/bevelwork/quick_ssm
 go 1.24.4
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.31.7
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.251.1
-	github.com/aws/aws-sdk-go-v2/service/iam v1.47.4
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.3
+	github.com/aws/aws-sdk-go-v2/config v1.31.12
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.254.1
+	github.com/aws/aws-sdk-go-v2/service/iam v1.47.7
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6
 	github.com/bevelwork/quick_color v0.0.0-20251007131624-980d1a19834d
 )
 
