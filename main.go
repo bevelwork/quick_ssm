@@ -24,21 +24,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	qc "github.com/bevelwork/quick_color"
 	versionpkg "github.com/bevelwork/quick_ssm/version"
 )
 
-// ANSI color codes for terminal output
-const (
-	ColorReset  = "\033[0m"
-	ColorRed    = "\033[31m"
-	ColorGreen  = "\033[32m"
-	ColorYellow = "\033[33m"
-	ColorBlue   = "\033[34m"
-	ColorPurple = "\033[35m"
-	ColorCyan   = "\033[36m"
-	ColorWhite  = "\033[37m"
-	ColorBold   = "\033[1m"
-)
+// Colors are provided by quick_color
 
 // InstanceInfo represents an EC2 instance with its metadata for display purposes.
 type InstanceInfo struct {
@@ -110,25 +100,20 @@ func main() {
 
 	for i, inst := range instances {
 		// Alternate row colors for better readability
-		var rowColor string
-		if i%2 == 0 {
-			rowColor = ColorWhite // Default color for even rows
-		} else {
-			rowColor = ColorCyan // Subtle cyan for odd rows
-		}
+		rowColor := qc.AlternatingColor(i, qc.ColorWhite, qc.ColorCyan)
 
 		// Color code the state
 		stateColor := colorInstState(inst.State)
 		entry := fmt.Sprintf(
 			"%3d. %-*s %s [%s]",
 			i+1, longestName, inst.DisplayName, inst.ID,
-			color(inst.State, stateColor),
+			qc.Color(inst.State, stateColor),
 		)
-		fmt.Println(color(entry, rowColor))
+		fmt.Println(qc.Color(entry, rowColor))
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("%s", color("Select instance. Blank, or non-numeric input will exit: ", ColorYellow))
+	fmt.Printf("%s", qc.Color("Select instance. Blank, or non-numeric input will exit: ", qc.ColorYellow))
 	input, err := reader.ReadString('\n')
 	if err != nil {
 		log.Fatal(err)
@@ -146,9 +131,9 @@ func main() {
 	selectedInstance := instances[inputInt-1]
 	fmt.Printf(
 		"Selected instance: %s %s [%s]\n",
-		colorBold(selectedInstance.DisplayName, ColorGreen),
-		color(selectedInstance.ID, ColorWhite),
-		color(selectedInstance.State, colorInstState(selectedInstance.State)),
+		qc.ColorizeBold(selectedInstance.DisplayName, qc.ColorGreen),
+		qc.Color(selectedInstance.ID, qc.ColorWhite),
+		qc.Color(selectedInstance.State, colorInstState(selectedInstance.State)),
 	)
 
 	// Warn if instance is not running
@@ -158,25 +143,25 @@ func main() {
 
 		switch selectedInstance.State {
 		case "stopped", "stopping":
-			warningColor = ColorRed
+			warningColor = qc.ColorRed
 			warningMessage = "⚠️  WARNING: Instance is not running - SSM connection will likely fail!"
 		case "terminated", "shutting-down":
-			warningColor = ColorRed
+			warningColor = qc.ColorRed
 			if selectedInstance.State == "terminated" {
 				warningMessage = "⚠️  WARNING: Instance is terminated - SSM connection is impossible!"
 			} else {
 				warningMessage = "⚠️  WARNING: Instance is shutting down - SSM connection is impossible!"
 			}
 		case "pending", "starting":
-			warningColor = ColorYellow
+			warningColor = qc.ColorYellow
 			warningMessage = "⚠️  WARNING: Instance is still starting - SSM connection may not be ready yet"
 		default:
-			warningColor = ColorYellow
+			warningColor = qc.ColorYellow
 			warningMessage = fmt.Sprintf("⚠️  WARNING: Instance is in %s state - SSM connection may not be available", selectedInstance.State)
 		}
 
-		fmt.Printf("%s\n", color(warningMessage, warningColor))
-		fmt.Printf("%s", color("Continue anyway? (y/N): ", ColorYellow))
+		fmt.Printf("%s\n", qc.Color(warningMessage, warningColor))
+		fmt.Printf("%s", qc.Color("Continue anyway? (y/N): ", qc.ColorYellow))
 
 		confirmInput, err := reader.ReadString('\n')
 		if err != nil {
@@ -411,9 +396,9 @@ type DiagnosticResult struct {
 // performDiagnostics runs comprehensive diagnostic checks on the specified instance
 // including IAM role attachment, internet connectivity, and SSM traffic requirements.
 func performDiagnostics(ctx context.Context, ec2Client *ec2.Client, iamClient *iam.Client, instanceID string) error {
-	fmt.Printf("\n%s\n", color(strings.Repeat("=", 60), ColorBlue))
-	fmt.Printf("%s\n", colorBold("DIAGNOSTIC CHECKS FOR INSTANCE: "+color(instanceID, ColorWhite), ColorBlue))
-	fmt.Printf("%s\n", color(strings.Repeat("=", 60), ColorBlue))
+	fmt.Printf("\n%s\n", qc.Color(strings.Repeat("=", 60), qc.ColorBlue))
+	fmt.Printf("%s\n", qc.ColorizeBold("DIAGNOSTIC CHECKS FOR INSTANCE: "+qc.Color(instanceID, qc.ColorWhite), qc.ColorBlue))
+	fmt.Printf("%s\n", qc.Color(strings.Repeat("=", 60), qc.ColorBlue))
 
 	var results []DiagnosticResult
 
@@ -783,31 +768,23 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-// color wraps a string with the specified color code
-func color(text, colorCode string) string {
-	return colorCode + text + ColorReset
-}
-
-// colorBold wraps a string with the specified color code and bold formatting
-func colorBold(text, colorCode string) string {
-	return colorCode + ColorBold + text + ColorReset
-}
+// color helpers are provided by quick_color
 
 func printHeader(checkMode bool, privateMode bool, callerIdentity *sts.GetCallerIdentityOutput) {
 	header := []string{
-		color(strings.Repeat("-", 40), ColorBlue),
+		qc.Color(strings.Repeat("-", 40), qc.ColorBlue),
 		"-- SSM Quick Connect --",
-		color(strings.Repeat("-", 40), ColorBlue),
+		qc.Color(strings.Repeat("-", 40), qc.ColorBlue),
 	}
 	if checkMode {
-		header = append(header, colorBold("<> <> DIAGNOSTIC MODE <> <>", ColorCyan))
+		header = append(header, qc.ColorizeBold("<> <> DIAGNOSTIC MODE <> <>", qc.ColorCyan))
 	}
 	if !privateMode {
 		header = append(header, fmt.Sprintf(
 			"  Account: %s \n  User: %s",
 			*callerIdentity.Account, *callerIdentity.Arn,
 		))
-		header = append(header, color(strings.Repeat("-", 40), ColorBlue))
+		header = append(header, qc.Color(strings.Repeat("-", 40), qc.ColorBlue))
 	}
 
 	fmt.Println(strings.Join(header, "\n"))
@@ -816,21 +793,21 @@ func printHeader(checkMode bool, privateMode bool, callerIdentity *sts.GetCaller
 func colorInstState(state string) string {
 	switch state {
 	case "running":
-		return ColorGreen
+		return qc.ColorGreen
 	case "stopped":
-		return ColorRed
+		return qc.ColorRed
 	case "terminated":
-		return ColorRed
+		return qc.ColorRed
 	case "shutting-down":
-		return ColorRed
+		return qc.ColorRed
 	case "pending":
-		return ColorYellow
+		return qc.ColorYellow
 	case "stopping":
-		return ColorYellow
+		return qc.ColorYellow
 	case "starting":
-		return ColorYellow
+		return qc.ColorYellow
 	default:
-		return ColorWhite
+		return qc.ColorWhite
 	}
 }
 
@@ -841,24 +818,24 @@ func displayDiagnosticResults(results []DiagnosticResult) {
 		switch result.Status {
 		case "PASS":
 			statusIcon = "✅"
-			colorCode = ColorGreen
+			colorCode = qc.ColorGreen
 		case "FAIL":
 			statusIcon = "❌"
-			colorCode = ColorRed
+			colorCode = qc.ColorRed
 		case "WARN":
 			statusIcon = "⚠️"
-			colorCode = ColorYellow
+			colorCode = qc.ColorYellow
 		default:
 			statusIcon = "❓"
-			colorCode = ColorWhite
+			colorCode = qc.ColorWhite
 		}
 
-		fmt.Printf("%s %s: %s\n", statusIcon, colorBold(result.CheckName, colorCode), result.Message)
+		fmt.Printf("%s %s: %s\n", statusIcon, qc.ColorizeBold(result.CheckName, colorCode), result.Message)
 	}
 
-	fmt.Printf("\n%s\n", color(strings.Repeat("=", 60), ColorPurple))
-	fmt.Printf("%s\n", colorBold("DIAGNOSTIC SUMMARY", ColorPurple))
-	fmt.Printf("%s\n", color(strings.Repeat("=", 60), ColorPurple))
+	fmt.Printf("\n%s\n", qc.Color(strings.Repeat("=", 60), qc.ColorPurple))
+	fmt.Printf("%s\n", qc.ColorizeBold("DIAGNOSTIC SUMMARY", qc.ColorPurple))
+	fmt.Printf("%s\n", qc.Color(strings.Repeat("=", 60), qc.ColorPurple))
 
 	passCount := 0
 	failCount := 0
@@ -875,16 +852,16 @@ func displayDiagnosticResults(results []DiagnosticResult) {
 		}
 	}
 
-	fmt.Printf("%s✅ Passed: %s\n", ColorGreen, colorBold(fmt.Sprintf("%d", passCount), ColorGreen))
-	fmt.Printf("%s⚠️  Warnings: %s\n", ColorYellow, colorBold(fmt.Sprintf("%d", warnCount), ColorYellow))
-	fmt.Printf("%s❌ Failed: %s\n", ColorRed, colorBold(fmt.Sprintf("%d", failCount), ColorRed))
+	fmt.Printf("%s✅ Passed: %s\n", qc.ColorGreen, qc.ColorizeBold(fmt.Sprintf("%d", passCount), qc.ColorGreen))
+	fmt.Printf("%s⚠️  Warnings: %s\n", qc.ColorYellow, qc.ColorizeBold(fmt.Sprintf("%d", warnCount), qc.ColorYellow))
+	fmt.Printf("%s❌ Failed: %s\n", qc.ColorRed, qc.ColorizeBold(fmt.Sprintf("%d", failCount), qc.ColorRed))
 
 	if failCount == 0 && warnCount == 0 {
-		fmt.Printf("\n%s\n", color("🎉 All checks passed! Instance should be ready for SSM connection.", ColorGreen))
+		fmt.Printf("\n%s\n", qc.Color("🎉 All checks passed! Instance should be ready for SSM connection.", qc.ColorGreen))
 	} else if failCount > 0 {
-		fmt.Printf("\n%s\n", color("⚠️  Some checks failed. Please address the issues above before connecting.", ColorRed))
+		fmt.Printf("\n%s\n", qc.Color("⚠️  Some checks failed. Please address the issues above before connecting.", qc.ColorRed))
 	} else {
-		fmt.Printf("\n%s\n", color("⚠️  Some warnings detected. Instance may work but review the warnings above.", ColorYellow))
+		fmt.Printf("\n%s\n", qc.Color("⚠️  Some warnings detected. Instance may work but review the warnings above.", qc.ColorYellow))
 	}
 }
 
