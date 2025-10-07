@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.254.1
 	github.com/aws/aws-sdk-go-v2/service/iam v1.47.7
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6
-	github.com/bevelwork/quick_color v0.0.0-20251007131624-980d1a19834d
+	github.com/bevelwork/quick_color v0.0.0-20251007143246-58bd2b21a166
 )
 
 require (
